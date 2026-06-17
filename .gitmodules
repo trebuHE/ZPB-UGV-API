@@ -1,0 +1,3 @@
+[submodule "src/panther-autonomy-pkg"]
+	path = src/panther-autonomy-pkg
+	url = https://github.com/trebuHE/panther-autonomy-pkg
