@@ -11,6 +11,10 @@ system, e.g., ROS2/ArduPilot.
 4. Implementing intermediary mechanisms.
 5. Implementing an example API client.
 
+## Repo structure
+
+- [`/deliverables`](./deliverables/) - contains project deliverables required by the university.
+
 ## Authors
 - [Hubert Mucha](https://github.com/trebuHE)
 - [Adrian Czekański](https://github.com/401adii)
