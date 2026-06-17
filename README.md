@@ -14,6 +14,11 @@ system, e.g., ROS2/ArduPilot.
 ## Repo structure
 
 - [`/deliverables`](./deliverables/) - contains project deliverables required by the university.
+- [`/src/panther-autonomy-pkg`](./src/panther-autonomy-pkg/) - submodule with autonomy packages.
+
+## Cloning
+
+This repo has submodules, to clone the repo with all submodules use `git clone --recurse-submodules`.
 
 ## Authors
 - [Hubert Mucha](https://github.com/trebuHE)
