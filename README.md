@@ -23,4 +23,4 @@ This repo has submodules, to clone the repo with all submodules use `git clone -
 ## Authors
 - [Hubert Mucha](https://github.com/trebuHE)
 - [Adrian Czekański](https://github.com/401adii)
-- Jacek Orłowski
+- [Jacek Orłowski](https://github.com/DexusY)
