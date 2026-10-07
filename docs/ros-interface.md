@@ -25,7 +25,7 @@ ros2 topic hz /panther/odometry/filtered               # publish rate
 ## Actions
 
 | Action | Type | Planned use |
-|---|---|---|---|
+|---|---|---|
 | `/panther/navigate_to_pose` | `nav2_msgs/action/NavigateToPose` (TBD) | core action for mission sequencing (drive to a single point) |
 | `/panther/follow_waypoints` | `nav2_msgs/action/FollowWaypoints` (TBD) | fallback: Nav2-native multi-waypoint traversal |
 | `/panther/follow_path` | `nav2_msgs/action/FollowPath` | low level; not used directly |
