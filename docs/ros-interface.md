@@ -55,18 +55,11 @@ ros2 interface show nav2_msgs/action/DriveOnHeading
 ```bash
 ros2 service type /panther/hardware/e_stop_trigger 
 ```
-## Frames
 
-TBD — read from odometry messages: `header.frame_id` (expected: `panther/odom`)
-and `child_frame_id` (expected: `panther/base_link`).
-Mission waypoints are defined in the `map` frame; Nav2 performs the
-transformation.
-
-## Design decisions (from recon, 2026-10-07)
+## Notes
 
 1. Mission sequencing is implemented in the **bridge** (not Nav2): loop of
-   `navigate_to_pose` -> waypoint script -> next point. `follow_waypoints`
-   is kept as a fallback option.
+   `navigate_to_pose` -> waypoint script -> next point.
 2. Telemetry source: `/panther/odometry/filtered` (not `wheels`).
 3. Subscriber QoS must match the publisher's QoS, otherwise no data is
    received.
