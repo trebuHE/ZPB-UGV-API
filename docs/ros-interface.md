@@ -43,8 +43,18 @@ ros2 interface show nav2_msgs/action/DriveOnHeading
 
 ## Services
 
-TBD: `ros2 service list` — not yet surveyed.
+| Service | Type | Purpose |
+|---|---|---|
+| `/panther/hardware/e_stop_trigger` | `std_srvs/srv/Trigger` | E-STOP activation|
+| `/panther/hardware/e_stop_reset` | `std_srvs/srv/Trigger` | E-STOP deactivation|
+| `/panther/lifecycle_manager_navigation/is_active` | `std_srvs/srv/Trigger` | Nav2 readiness check |
+| `/panther/lifecycle_manager_slam/is_active` | `std_srvs/srv/Trigger` | SLAM readiness check | 
 
+### Commands used
+
+```bash
+ros2 service type /panther/hardware/e_stop_trigger 
+```
 ## Frames
 
 TBD — read from odometry messages: `header.frame_id` (expected: `panther/odom`)
