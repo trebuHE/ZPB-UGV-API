@@ -4,18 +4,19 @@ Observed ROS 2 interface of the Panther platform (simulation stack). This docume
 
 ## Topics
 
-| Topic | Message type | Rate | QoS (reliability / durability) | Notes |
+| Topic | Message type | Rate | QoS | Notes |
 |---|---|---|---|---|
-| `/panther/odometry/wheels` | `nav_msgs/msg/Odometry` (TBD) | TBD | TBD | raw wheel-encoder odometry; drifts over time |
-| `/panther/odometry/filtered` | `nav_msgs/msg/Odometry` (TBD) | TBD | TBD | EKF output (wheel + IMU fusion); **preferred source for the bridge** |
-| `/panther/map` | TBD | — | TBD | occupancy map (SLAM/AMCL) |
-| `/panther/map_updates` | TBD | — | TBD | incremental map updates |
-| `/panther/plan` | TBD | — | TBD | Nav2 planner path |
-| `/panther/plan_smoothed` | TBD | — | TBD | smoothed path |
-| `/panther/optimal_trajectory` | TBD | — | TBD | controller trajectory |
-| battery | TBD (`ros2 topic list \| grep -i batter`) | — | — | topic not yet identified |
+| `/panther/odometry/wheels` | `nav_msgs/msg/Odometry` | 67 Hz | RELIABLE / VOLATILE / depth 1 | raw wheel-encoder odometry; drifts over time |
+| `/panther/odometry/filtered` | `nav_msgs/msg/Odometry` | 31 Hz | RELIABLE / VOLATILE / depth 10 | EKF output (wheel + IMU fusion); **preferred source for the bridge** |
+| `/panther/battery/battery_status`| `sensor_msgs/msg/BatteryState` | 28 Hz | RELIABLE / VOLATILE / depth 10 | battery vol, cap, % left, status|
+| `/panther/hardware/e_stop` | `std_msgs/msg/Bool` | N/A | RELIABLE / TRANSIENT_LOCAL / depth 1 | E-Stop state| 
 
-### Commands used to fill TBD fields
+>RELIABLE - retransmits lost packets
+>VOLATILE - subscribers get only the latest messages, no history
+>TRANSIENT_LOCAL - transmits buffered messages to subscribers
+>depth - number of messages kept in the buffer
+
+### Commands used
 
 ```bash
 ros2 topic info /panther/odometry/filtered --verbose   # type + QoS
