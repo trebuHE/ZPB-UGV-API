@@ -27,17 +27,19 @@ ros2 topic hz /panther/odometry/filtered               # publish rate
 
 | Action | Type | Planned use |
 |---|---|---|
-| `/panther/navigate_to_pose` | `nav2_msgs/action/NavigateToPose` (TBD) | core action for mission sequencing (drive to a single point) |
-| `/panther/follow_waypoints` | `nav2_msgs/action/FollowWaypoints` (TBD) | fallback: Nav2-native multi-waypoint traversal |
-| `/panther/follow_path` | `nav2_msgs/action/FollowPath` | low level; not used directly |
-| `/panther/drive_on_heading` | `nav2_msgs/action/DriveOnHeading` | straight-line travel |
-| `/panther/spin` | `nav2_msgs/action/Spin` | in-place rotation; candidate for waypoint actions |
-| `/panther/wait` | `nav2_msgs/action/Wait` | timed wait; candidate for waypoint actions |
-| `/panther/compute_path_to_pose` | `nav2_msgs/action/ComputePathToPose` | planning only; not used directly |
-| `/panther/compute_path_through_poses` | `nav2_msgs/action/ComputePathThroughPoses`| planning only |
-| `/panther/smooth_path` | `nav2_msgs/action/SmoothPath` | planning only |
-| `/panther/back` | TBD | TBD |
-| `/panther/follow_gps_waypoints` | TBD | GPS-based; out of project scope |
+| `/panther/navigate_to_pose` | `nav2_msgs/action/NavigateToPose` | core action for mission sequencing (drive to a single point) |
+| `/panther/follow_waypoints` | `nav2_msgs/action/FollowWaypoints` | Nav2-native multi-waypoint traversal, less control over sequencing |
+| `/panther/drive_on_heading` | `nav2_msgs/action/DriveOnHeading` | straight-line travel, has collision detection, may be used for testing and/or recovery behavior |
+| `/panther/spin` | `nav2_msgs/action/Spin` | in-place rotation, has collisoin detection, may be used for waypoint actions |
+| `/panther/wait` | `nav2_msgs/action/Wait` | timed wait, may be used for waypoint actions |
+| `/panther/backup` | `nav2_msgs/action/BackUp` |straight-line backup, has **no** collision detection |
+
+### Commands used
+
+```bash
+ros2 action info /panther/navigate_to_pose -t
+ros2 interface show nav2_msgs/action/DriveOnHeading
+```
 
 ## Services
 
