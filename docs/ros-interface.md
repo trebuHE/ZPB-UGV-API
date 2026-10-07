@@ -12,8 +12,11 @@ Observed ROS 2 interface of the Panther platform (simulation stack). This docume
 | `/panther/hardware/e_stop` | `std_msgs/msg/Bool` | N/A | RELIABLE / TRANSIENT_LOCAL / depth 1 | E-Stop state| 
 
 >RELIABLE - retransmits lost packets
+
 >VOLATILE - subscribers get only the latest messages, no history
+
 >TRANSIENT_LOCAL - transmits buffered messages to subscribers
+
 >depth - number of messages kept in the buffer
 
 ### Commands used
