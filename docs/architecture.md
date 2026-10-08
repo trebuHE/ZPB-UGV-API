@@ -1,4 +1,4 @@
-# UGV API — Architecture
+# UGV API - Architecture
 
 **Project goal:** an HTTP API to operate a Husarion Panther UGV (Gazebo simulation now, the physical robot later), including running missions defined as waypoint lists and executing external measurement scripts (Python) at and between waypoints.
 
