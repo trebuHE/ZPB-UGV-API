@@ -16,6 +16,8 @@ system, e.g., ROS2/ArduPilot.
 - [`/deliverables`](./deliverables/) - contains project deliverables required by the university.
 - [`/docs`](./docs/) - contains project documentation.
 - [`/src/panther-autonomy-pkg`](./src/panther-autonomy-pkg/) - submodule with autonomy packages.
+- [`/src/ugv-api/api`](./src/ugv-api/api/) - API code.
+- [`/src/ugv-api/bridge`](./src/ugv-api/bridge/) - ROS2 bridge.
 
 ## Cloning
 
