@@ -3,8 +3,8 @@
 services:
   api:
     build: .
-    image: ugv-api:dev
-    container_name: ugv-api
+    image: ugv-api:sim
+    container_name: ugv-api-sim
     network_mode: host
     ipc: host
     env_file: ../panther-autonomy-pkg/.env

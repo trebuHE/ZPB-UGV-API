@@ -20,8 +20,8 @@ in `src/panther-autonomy-pkg/`).
 
 ```bash
 # src/ugv-api$
-docker compose -f compose.simulation.yaml build
-docker compose -f compose.simulation.yaml up api
+docker compose -f compose.api-sim.yaml build
+docker compose -f compose.api-sim.yaml up api
 ```
 
 The API container uses `network_mode: host` and the same CycloneDDS setup as
@@ -38,7 +38,7 @@ Only changes to `requirements.txt` or the `Dockerfile` require a rebuild.
 With the simulation running and the API container up:
 
 ```bash
-docker compose -f compose.simulation.yaml run --rm api \
+docker compose -f compose.api-sim.yaml run --rm api \
 bash -c "source /opt/ros/jazzy/setup.bash && ros2 topic list"
 ```
 
