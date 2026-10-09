@@ -1,5 +1,7 @@
 # Compose file for VS Code Dev Containers (development only).
 # The production/simulation runtime uses compose.simulation.yaml.
+name: ugv-api-dev
+
 services:
   api:
     build: .

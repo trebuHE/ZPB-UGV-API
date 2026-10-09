@@ -1,5 +1,7 @@
 # Runs the UGV API sidecar alongside the Husarion simulation stack.
 # Usage: docker compose -f src/ugv-api/compose.api-sim.yaml up api
+name: ugv-api-sim
+
 services:
   api:
     build: .
