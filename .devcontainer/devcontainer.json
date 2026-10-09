@@ -1,0 +1,24 @@
+// .devcontainer/devcontainer.json
+{
+  "name": "UGV API",
+  "dockerComposeFile": ["../src/ugv-api/compose.dev.yaml"],
+  "service": "api",
+  "workspaceFolder": "/workspaces/ZPB-UGV-API",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "charliermarsh.ruff",
+        "tamasfe.even-better-toml"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/opt/venv/bin/python",
+        "python.analysis.extraPaths": [
+          "/opt/ros/jazzy/lib/python3.12/site-packages",
+          "/opt/ros/jazzy/local/lib/python3.12/dist-packages"
+          ]
+      }
+    }
+  },
+  "postCreateCommand": "cd src/ugv-api && pip install --no-cache-dir -r requirements.txt"
+}
