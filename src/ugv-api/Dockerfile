@@ -2,24 +2,34 @@ FROM ros:jazzy-ros-base
 
 WORKDIR /app
 
-# System deps (pip is not included in ros-base)
+# System dependencies and CycloneDDS RMW packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      python3-pip python3-venv ros-jazzy-rmw-cyclonedds-cpp \
+    python3-pip python3-venv git \
+    ros-jazzy-rmw-cyclonedds-cpp ros-jazzy-cyclonedds \
     && rm -rf /var/lib/apt/lists/*
 
+# Default ROS 2 RMW implementation
+ENV RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
 
-# Virtual environment — avoids PEP 668 (externally-managed-environment)
-RUN python3 -m venv /opt/venv
+# Create a virtual environment with system site packages enabled:
+# Isolates pip dependencies (PEP 668 compliance) while granting the venv interpreter access to system ROS 2 packages (rclpy)
+RUN python3 -m venv --system-site-packages /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Python deps (cached layer — only rebuilt when requirements change)
+# Install Python requirements
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Project code (copied last so code edits don't invalidate the deps layer)
+# Automatically source ROS 2 environment and activate the venv for interactive bash sessions
+RUN echo "source /opt/ros/jazzy/setup.bash" >> /root/.bashrc \
+    && echo "source /opt/venv/bin/activate" >> /root/.bashrc
+
+# Copy project source files
 COPY bridge/ ./bridge/
 COPY api/ ./api/
 
-CMD ["bash", "-c", "source /opt/ros/jazzy/setup.bash && \
-     export PYTHONPATH=/opt/venv/lib/python3.12/site-packages:$PYTHONPATH && \
-     /usr/bin/python3 -m uvicorn api.main:app --host 0.0.0.0 --port 8000"]
+# Official ROS 2 entrypoint ensuring ROS environment setup before executing container commands
+ENTRYPOINT ["/ros_entrypoint.sh"]
+
+# Run the FastAPI application with uvicorn
+CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]

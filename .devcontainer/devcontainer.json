@@ -19,6 +19,6 @@
           ]
       }
     }
-  },
-  "postCreateCommand": "cd src/ugv-api && pip install --no-cache-dir -r requirements.txt"
+  }
 }
+  

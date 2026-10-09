@@ -1,5 +1,5 @@
 # Runs the UGV API sidecar alongside the Husarion simulation stack.
-# Usage: docker compose -f src/ugv-api/compose.simulation.yaml up api
+# Usage: docker compose -f src/ugv-api/compose.api-sim.yaml up api
 services:
   api:
     build: .
@@ -12,10 +12,6 @@ services:
       - ROBOT_NAMESPACE=panther
     # Code mounted for live editing during development (no image rebuild needed).
     volumes:
-       - ./bridge:/app/bridge
-       - ./api:/app/api
-    command: >
-      bash -c "source /opt/ros/jazzy/setup.bash &&
-      export PYTHONPATH=/opt/venv/lib/python3.12/site-packages:$PYTHONPATH &&
-      python -m uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload"
+      - ./bridge:/app/bridge
+      - ./api:/app/api
     restart: unless-stopped
