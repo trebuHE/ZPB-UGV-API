@@ -49,8 +49,7 @@ Values in `/state` must change while the robot moves in Gazebo/RViz.
 
 ## Troubleshooting
 
-**Build fails with `additional privileges requested: pass "--allow=fs.read=..."`.
-** Known incompatibility between buildx >= 0.37.2 and Docker Compose
+*Build fails with `additional privileges requested: pass "--allow=fs.read=..."`.* Known incompatibility between buildx >= 0.37.2 and Docker Compose
 (< the release containing the fix for
 [docker/compose#14285](https://github.com/docker/compose/issues/14285)) when the
 Dockerfile lies outside the build context — which is always the case for
