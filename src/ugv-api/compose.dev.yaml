@@ -1,0 +1,21 @@
+# Compose file for VS Code Dev Containers (development only).
+# The production/simulation runtime uses compose.api-sim.yaml.
+name: ugv-api-dev
+
+services:
+  api:
+    build: .
+    image: ugv-api:dev
+    container_name: ugv-api-dev
+    user: "1000:1000"
+    network_mode: host
+    ipc: host
+    env_file: ../panther-autonomy-pkg/.env
+    working_dir: /workspaces/ZPB-UGV-API/src/ugv-api
+    environment:
+      - ROBOT_NAMESPACE=panther
+    volumes:
+      - ../..:/workspaces/ZPB-UGV-API
+      - ../panther-autonomy-pkg/config:/config:ro
+    # Overrides the image CMD: keeps the container alive for VS Code
+    command: sleep infinity

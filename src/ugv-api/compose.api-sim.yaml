@@ -1,10 +1,13 @@
 # Runs the UGV API sidecar alongside the Husarion simulation stack.
-# Usage: docker compose -f src/ugv-api/compose.simulation.yaml up api
+# Usage: docker compose -f src/ugv-api/compose.api-sim.yaml up api
+name: ugv-api-sim
+
 services:
   api:
     build: .
-    image: ugv-api:dev
-    container_name: ugv-api
+    image: ugv-api:sim
+    container_name: ugv-api-sim
+    user: "1000:1000"
     network_mode: host
     ipc: host
     env_file: ../panther-autonomy-pkg/.env
@@ -12,6 +15,6 @@ services:
       - ROBOT_NAMESPACE=panther
     # Code mounted for live editing during development (no image rebuild needed).
     volumes:
-       - ./bridge:/app/bridge
-       - ./api:/app/api
+      - ./bridge:/app/bridge
+      - ./api:/app/api
     restart: unless-stopped
