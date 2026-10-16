@@ -42,18 +42,16 @@ With the simulation running and the API container up:
 
 ```bash
 curl http://localhost:8000/health   # {"status": "ok"}
-curl http://localhost:8000/state    # current robot pose (x, y, yaw)
+curl http://localhost:8000/state    # current robot pose (x, y, yaw), battery and e-stop status
 ```
 
 Values in `/state` must change while the robot moves in Gazebo/RViz.
 
 ## Troubleshooting
 
-*Build fails with `additional privileges requested: pass "--allow=fs.read=..."`.* Known incompatibility between buildx >= 0.37.2 and Docker Compose
-(< the release containing the fix for
-[docker/compose#14285](https://github.com/docker/compose/issues/14285)) when the
-Dockerfile lies outside the build context — which is always the case for
-Dev Container builds. Workaround until Compose is updated:
+**Build fails with `additional privileges requested: pass "--allow=fs.read=..."`.** 
+
+Known incompatibility between buildx >= 0.37.2 and Docker Compose (< the release containing the fix for [docker/compose#14285](https://github.com/docker/compose/issues/14285)) when the Dockerfile lies outside the build context — which is always the case for Dev Container builds. Workaround until Compose is updated:
 
 ```bash
 export BUILDX_BAKE_ENTITLEMENTS_FS=0   # add to ~/.bashrc for persistence
