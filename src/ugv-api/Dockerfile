@@ -21,8 +21,8 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Automatically source ROS 2 environment and activate the venv for interactive bash sessions
-RUN echo "source /opt/ros/jazzy/setup.bash" >> /root/.bashrc \
-    && echo "source /opt/venv/bin/activate" >> /root/.bashrc
+RUN echo "source /opt/ros/jazzy/setup.bash" >> /etc/bash.bashrc \
+    && echo "source /opt/venv/bin/activate" >> /etc/bash.bashrc
 
 # Copy project source files
 COPY bridge/ ./bridge/
