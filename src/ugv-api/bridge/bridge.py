@@ -52,5 +52,8 @@ class Bridge:
       return dict(self._state) if self._state else None
 
   def shutdown(self):
+    if rclpy.ok():
+      rclpy.try_shutdown()
+    if self._thread.is_alive():
+      self._thread.join(timeout=2.0)
     self._node.destroy_node()
-    rclpy.try_shutdown()
