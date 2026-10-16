@@ -30,3 +30,8 @@ def state():
   if s is None:
     return {"error": "no odometry received yet"}
   return s
+
+@app.post("/e-stop/reset")
+def reset_e_stop():
+  result = BRIDGE.reset_e_stop()
+  return result

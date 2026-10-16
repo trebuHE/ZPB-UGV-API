@@ -41,7 +41,7 @@ class Bridge:
       depth = 1,
     )
 
-# Topic subscriptions
+    # Topic subscriptions
     self._node.create_subscription(
       Odometry,
       f"{self._ns}/odometry/filtered",
@@ -68,7 +68,7 @@ class Bridge:
       )
     self._thread.start()
 
-# Service clients
+    # Service clients
     self._srv_e_stop_trigger = self._node.create_client(
       Trigger, f"{self._ns}/hardware/e_stop_trigger"
     )
