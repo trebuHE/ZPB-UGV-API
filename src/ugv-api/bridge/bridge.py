@@ -8,8 +8,10 @@ import rclpy
 from nav_msgs.msg import Odometry
 from rclpy.node import Node
 from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
+from rclpy.task import Future
 from sensor_msgs.msg import BatteryState
 from std_msgs.msg import Bool
+from std_srvs.srv import Trigger
 
 
 class Bridge:
@@ -39,6 +41,7 @@ class Bridge:
       depth = 1,
     )
 
+# Topic subscriptions
     self._node.create_subscription(
       Odometry,
       f"{self._ns}/odometry/filtered",
@@ -65,6 +68,22 @@ class Bridge:
       )
     self._thread.start()
 
+# Service clients
+    self._srv_e_stop_trigger = self._node.create_client(
+      Trigger, f"{self._ns}/hardware/e_stop_trigger"
+    )
+
+    self._srv_e_stop_reset = self._node.create_client(
+      Trigger, f"{self._ns}/hardware/e_stop_reset"
+    )
+
+    self._srv_nav_active = self._node.create_client(
+      Trigger, f"{self._ns}/lifecycle_manager_navigation/is_active"
+    )
+
+    self._srv_slam_active = self._node.create_client(
+      Trigger, f"{self._ns}/lifecycle_manager_slam/is_active"
+    )
 
   def _on_odometry(self, msg: Odometry):
     p = msg.pose.pose.position
@@ -96,6 +115,25 @@ class Bridge:
     with self._lock:
       self._e_stop = msg.data
 
+  def _call_trigger(self, client: rclpy.client.Client, timeout_sec: float = 2.0) -> dict:
+    """Helper function that fires ROS2 service trigger and waits for the response with a timeout."""
+    
+    # Check if ROS2 service is avaliable
+    if not client.wait_for_service(timeout_sec=timeout_sec):
+      return {"success": False, "message": f"Service {client.srv_name} unavailable"}
+
+    event = threading.Event()
+
+    future: Future = client.call_async(Trigger.Request())
+    future.add_done_callback(lambda _: event.set())
+
+    # Timeout
+    if not event.wait(timeout=timeout_sec):
+      future.cancel()
+      return {"success": False, "message": f"Service {client.srv_name} call timed out after {timeout_sec} seconds!"}
+
+    res: Trigger.Response = future.result()
+    return {"success": res.success, "message": res.message}
 
   def get_state(self) -> dict:
     with self._lock:
@@ -104,6 +142,18 @@ class Bridge:
         "battery": copy.deepcopy(self._battery),
         "e_stop": self._e_stop,
       }
+
+  def trigger_e_stop(self, timeout_sec: float = 2.0) -> dict:
+    return self._call_trigger(self._srv_e_stop_trigger, timeout_sec)
+
+  def reset_e_stop(self, timeout_sec: float = 2.0) -> dict:
+    return self._call_trigger(self._srv_e_stop_reset, timeout_sec)
+
+  def is_navigation_active(self, timeout_sec: float = 2.0) -> dict:
+    return self._call_trigger(self._srv_nav_active, timeout_sec)
+
+  def is_slam_active(self, timeout_sec: float = 2.0) -> dict:
+    return self._call_trigger(self._srv_slam_active, timeout_sec)
 
   def shutdown(self):
     if rclpy.ok():
