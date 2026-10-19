@@ -6,6 +6,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-pip python3-venv git \
     ros-jazzy-rmw-cyclonedds-cpp ros-jazzy-cyclonedds \
+    ros-jazzy-nav2-msgs \
     && rm -rf /var/lib/apt/lists/*
 
 # Default ROS 2 RMW implementation
