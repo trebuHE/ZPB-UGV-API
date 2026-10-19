@@ -157,7 +157,7 @@ class Bridge:
     """Helper function that sends single waypoint to Nav2 NavigateToPose action."""
     goal_msg = NavigateToPose.Goal()
     goal_msg.pose = PoseStamped()
-    goal_msg.pose.header.frame_id = "map"
+    goal_msg.pose.header.frame_id = "panther/map"
     goal_msg.pose.header.stamp = self._node.get_clock().now().to_msg()
     goal_msg.pose.pose.position.x = float(wp.x)
     goal_msg.pose.pose.position.y = float(wp.y)
