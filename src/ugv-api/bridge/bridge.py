@@ -5,6 +5,7 @@ import math
 import threading
 
 import rclpy
+from api.models import RobotState
 from nav_msgs.msg import Odometry
 from rclpy.node import Node
 from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
@@ -20,6 +21,7 @@ class Bridge:
   def __init__(self, namespace: str = "panther"):
     self._ns = f"/{namespace.strip('/')}" if namespace.strip("/") else ""
     self._lock = threading.Lock()
+    self._robot_state: RobotState = None
     self._pose = None
     self._battery =  None
     self._e_stop = None
@@ -135,13 +137,14 @@ class Bridge:
     res: Trigger.Response = future.result()
     return {"success": res.success, "message": res.message}
 
-  def get_state(self) -> dict:
+  def get_state(self) -> RobotState:
     with self._lock:
-      return {
+      raw_state = {
         "pose": copy.deepcopy(self._pose),
         "battery": copy.deepcopy(self._battery),
         "e_stop": self._e_stop,
       }
+      return RobotState.model_validate(raw_state)
 
   def trigger_e_stop(self, timeout_sec: float = 2.0) -> dict:
     return self._call_trigger(self._srv_e_stop_trigger, timeout_sec)
