@@ -2,6 +2,7 @@
 
 from contextlib import asynccontextmanager
 
+from api.models import RobotState
 from bridge.bridge import Bridge
 from fastapi import FastAPI
 
@@ -24,12 +25,9 @@ def health():
   return {"status": "ok"}
 
 
-@app.get("/state")
+@app.get("/state", response_model=RobotState)
 def state():
-  s = BRIDGE.get_state()
-  if s is None:
-    return {"error": "no odometry received yet"}
-  return s
+  return BRIDGE.get_state()
 
 @app.post("/e-stop/reset")
 def reset_e_stop():
