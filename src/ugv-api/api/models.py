@@ -22,8 +22,8 @@ class RobotState(BaseModel):
 
 class Waypoint(BaseModel):
   id: str
-  x: float = Field(..., description="X coordinate in meters")
-  y: float = Field(..., description="X coordinate in meters")
+  x: float = Field(..., description="X coordinate in meters (positive ahead direction)")
+  y: float = Field(..., description="Y coordinate in meters (positive left direction)")
   yaw: float = Field(default=0.0, description="Target angle in radians")
 
 class MissionDefinition(BaseModel):
