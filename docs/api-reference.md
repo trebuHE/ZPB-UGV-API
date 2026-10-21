@@ -2,18 +2,18 @@
 
 This document provides a comprehensive reference for the FastAPI endpoints, Pydantic data models, and the internal ROS 2 bridge interface.
 
-## 1. FastAPI Endpoints (`src/ugv-api/api/main.py`)
+## 1. FastAPI Endpoints ([`src/ugv-api/api/main.py`](/src/ugv-api/api/main.py))
 
 | Endpoint | Method | Request Body | Response | Description |
 |---|---|---|---|---|
 | `/health` | `GET` | None | `dict` (`{"status": "ok"}`) | Basic health check for the API sidecar container. |
-| `/state` | `GET` | None | [`RobotState`](#2-pydantic-models) | Returns the current cached state of the robot (pose, battery, e-stop). |
-| `/e-stop/reset` | `POST` | None | [`CommandResult`](#2-pydantic-models) | Triggers the E-Stop reset service on the UGV hardware interface. |
-| `/mission/start` | `POST` | [`MissionDefinition`](#2-pydantic-models) | [`CommandResult`](#2-pydantic-models) | Validates Nav2 & SLAM readiness, checks action servers, and initiates mission execution in a background worker thread. |
-| `/mission/status` | `GET` | None | [`MissionStatus`](#2-pydantic-models) | Returns current runtime execution state and progress of the active mission. |
+| `/state` | `GET` | None | [`RobotState`](#robotstate) | Returns the current cached state of the robot (pose, battery, e-stop). |
+| `/e-stop/reset` | `POST` | None | [`CommandResult`](#commandresult) | Triggers the E-Stop reset service on the UGV hardware interface. |
+| `/mission/start` | `POST` | [`MissionDefinition`](#missiondefinition) | [`CommandResult`](#commandresult) | Validates Nav2 & SLAM readiness, checks action servers, and initiates mission execution in a background worker thread. |
+| `/mission/status` | `GET` | None | [`MissionStatus`](#missionstatus) | Returns current runtime execution state and progress of the active mission. |
 
 
-## 2. Pydantic Models (`src/ugv-api/api/models.py`)
+## 2. Pydantic Models ([`src/ugv-api/api/models.py`](/src/ugv-api/api/models.py))
 
 ### `PoseData`
 - `x`: `float` - X coordinate in meters.
@@ -64,12 +64,12 @@ This document provides a comprehensive reference for the FastAPI endpoints, Pyda
 - `message`: `str` - Descriptive message or error details.
 
 
-## 3. ROS 2 Bridge Interface (`src/ugv-api/bridge/`)
+## 3. ROS 2 Bridge Interface ([`src/ugv-api/bridge/`](/src/ugv-api/bridge/))
 
 The `Bridge` class acts as a facade, owning the single `rclpy` node and background spin thread while delegating specific responsibilities to modular managers:
 
-- **`TelemetryManager` (`telemetry.py`)**: Subscribes to `/panther/odometry/filtered`, `/panther/battery/battery_status`, and `/hardware/e_stop`, caching thread-safe state snapshots.
-- **`HardwareManager` (`hardware.py`)**: Manages service clients for E-stop triggers/resets and Nav2 / SLAM lifecycle manager activity probes (`CommandResult` return values).
-- **`NavigationManager` (`navigation.py`)**: Wraps the Nav2 `NavigateToPose` action client for waypoint traversal.
-- **`MissionManager` (`mission.py`)**: Manages mission validation checks, execution status tracking, and spawns background threads to sequence waypoint navigation.
-- **`utils.py`**: Provides quaternion-to-yaw math utilities and reusable QoS profiles.
+- **[`TelemetryManager`](/src/ugv-api/bridge/telemetry.py)**: Subscribes to `/panther/odometry/filtered`, `/panther/battery/battery_status`, and `/hardware/e_stop`, caching thread-safe state snapshots.
+- **[`HardwareManager`](/src/ugv-api/bridge/hardware.py)**: Manages service clients for E-stop triggers/resets and Nav2 / SLAM lifecycle manager activity probes.
+- **[`NavigationManager`](/src/ugv-api/bridge/navigation.py)**: Wraps the Nav2 `NavigateToPose` action client for waypoint traversal.
+- **[`MissionManager`](/src/ugv-api/bridge/mission.py)**: Manages mission validation checks, execution status tracking, and spawns background threads to sequence waypoint navigation.
+- **[`utils.py`](/src/ugv-api/bridge/utils.py)**: Provides quaternion-to-yaw math utilities and reusable QoS profiles.
