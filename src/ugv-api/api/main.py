@@ -2,7 +2,7 @@
 
 from contextlib import asynccontextmanager
 
-from api.models import MissionDefinition, RobotState
+from api.models import CommandResult, MissionDefinition, MissionStatus, RobotState
 from bridge.bridge import Bridge
 from fastapi import FastAPI
 
@@ -29,15 +29,15 @@ def health():
 def state():
   return BRIDGE.get_state()
 
-@app.post("/e-stop/reset")
+@app.post("/e-stop/reset", response_model=CommandResult)
 def reset_e_stop():
   result = BRIDGE.reset_e_stop()
   return result
 
-@app.post("/mission/start")
+@app.post("/mission/start", response_model=CommandResult)
 def start_mission(mission: MissionDefinition):
-  BRIDGE.start_mission(mission)
-  return {
-    "status": "started",
-    "waypoints_count": len(mission.waypoints),
-  }
+  return BRIDGE.start_mission(mission=mission)
+
+@app.get("/mission/status", response_model=MissionStatus)
+def mission_status():
+  return BRIDGE.get_mission_status()
