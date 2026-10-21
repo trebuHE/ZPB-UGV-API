@@ -68,7 +68,7 @@ This document provides a comprehensive reference for the FastAPI endpoints, Pyda
 
 The `Bridge` class acts as a facade, owning the single `rclpy` node and background spin thread while delegating specific responsibilities to modular managers:
 
-- **[`TelemetryManager`](/src/ugv-api/bridge/telemetry.py)**: Subscribes to `/panther/odometry/filtered`, `/panther/battery/battery_status`, and `/hardware/e_stop`, caching thread-safe state snapshots.
+- **[`TelemetryManager`](/src/ugv-api/bridge/telemetry.py)**: Subscribes to `/panther/odometry/filtered`, `/panther/battery/battery_status`, and `/panther/hardware/e_stop`, caching thread-safe state snapshots.
 - **[`HardwareManager`](/src/ugv-api/bridge/hardware.py)**: Manages service clients for E-stop triggers/resets and Nav2 / SLAM lifecycle manager activity probes.
 - **[`NavigationManager`](/src/ugv-api/bridge/navigation.py)**: Wraps the Nav2 `NavigateToPose` action client for waypoint traversal.
 - **[`MissionManager`](/src/ugv-api/bridge/mission.py)**: Manages mission validation checks, execution status tracking, and spawns background threads to sequence waypoint navigation.
