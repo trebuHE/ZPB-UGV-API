@@ -3,7 +3,7 @@
 import threading
 
 import rclpy
-from api.models import MissionDefinition, RobotState
+from api.models import CommandResult, MissionDefinition, MissionStatus, RobotState
 from rclpy.node import Node
 
 from bridge.hardware import HardwareManager
@@ -36,20 +36,23 @@ class Bridge:
   def get_state(self) -> RobotState:
     return self.telemetry.get_state()
 
-  def trigger_e_stop(self, timeout_sec: float = 2.0) -> dict:
+  def trigger_e_stop(self, timeout_sec: float = 2.0) -> CommandResult:
     return self.hardware.trigger_e_stop(timeout_sec)
 
-  def reset_e_stop(self, timeout_sec: float = 2.0) -> dict:
+  def reset_e_stop(self, timeout_sec: float = 2.0) -> CommandResult:
     return self.hardware.reset_e_stop(timeout_sec)
 
-  def is_navigation_active(self, timeout_sec: float = 2.0) -> dict:
+  def is_navigation_active(self, timeout_sec: float = 2.0) -> CommandResult:
     return self.hardware.is_navigation_active(timeout_sec)
 
-  def is_slam_active(self, timeout_sec: float = 2.0) -> dict:
+  def is_slam_active(self, timeout_sec: float = 2.0) -> CommandResult:
     return self.hardware.is_slam_active(timeout_sec)
 
-  def start_mission(self, mission: MissionDefinition) -> dict:
+  def start_mission(self, mission: MissionDefinition) -> CommandResult:
     return self.mission.start_mission(mission)
+
+  def get_mission_status(self) -> MissionStatus:
+    return self.mission.get_status()
 
   def shutdown(self):
     if rclpy.ok():
