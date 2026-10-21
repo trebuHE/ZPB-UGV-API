@@ -33,7 +33,7 @@ ros2 topic hz /panther/odometry/filtered               # publish rate
 | `/panther/navigate_to_pose` | `nav2_msgs/action/NavigateToPose` | core action for mission sequencing (drive to a single point) |
 | `/panther/follow_waypoints` | `nav2_msgs/action/FollowWaypoints` | Nav2-native multi-waypoint traversal, less control over sequencing |
 | `/panther/drive_on_heading` | `nav2_msgs/action/DriveOnHeading` | straight-line travel, has collision detection, may be used for testing and/or recovery behavior |
-| `/panther/spin` | `nav2_msgs/action/Spin` | in-place rotation, has collisoin detection, may be used for waypoint actions |
+| `/panther/spin` | `nav2_msgs/action/Spin` | in-place rotation, has collision detection, may be used for waypoint actions |
 | `/panther/wait` | `nav2_msgs/action/Wait` | timed wait, may be used for waypoint actions |
 | `/panther/backup` | `nav2_msgs/action/BackUp` |straight-line backup, has **no** collision detection |
 
