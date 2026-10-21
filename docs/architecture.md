@@ -22,7 +22,7 @@ Client (HTTP/WS) ──► API container (custom image) ──► Husarion image
 
 ## 3. Bridge → API contract
 
-**TBD**
+For a detailed specification of FastAPI endpoints, Pydantic data models, and the internal ROS 2 bridge modular architecture, see the [API Reference](./api-reference.md).
 
 ## 4. Missions and external scripts
 
