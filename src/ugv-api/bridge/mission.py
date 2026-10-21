@@ -89,3 +89,6 @@ class MissionManager:
       self._mission_thread.start()
 
     return CommandResult(success=True, message=f"Mission {mission.name} accepted and started in a mission thread")
+
+  def get_status(self) -> MissionStatus:
+    return self._status
