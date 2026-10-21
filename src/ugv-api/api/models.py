@@ -1,3 +1,5 @@
+from enum import Enum
+
 from pydantic import BaseModel, Field
 
 
@@ -29,3 +31,24 @@ class Waypoint(BaseModel):
 class MissionDefinition(BaseModel):
   name: str = Field(..., min_length=1)
   waypoints: list[Waypoint] = Field(..., min_length=1)
+
+class MissionState(str, Enum):
+  IDLE = "idle"
+  RUNNING = "running"
+  COMPLETED = "completed"
+  FAILED = "failed"
+  CANCELLED = "cancelled"
+
+class MissionStatus(BaseModel):
+  """Runtime status and execution progress of a mission."""
+  state: MissionState = MissionState.IDLE
+  mission_name: str | None = None
+  current_waypoint_index: int = 0
+  total_waypoints: int = 0
+  current_waypoint_id: str | None = None
+  error_message: str | None = None
+
+class CommandResult(BaseModel):
+  """Standard response for commands and service triggers."""
+  success: bool
+  message: str
