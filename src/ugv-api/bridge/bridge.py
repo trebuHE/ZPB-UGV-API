@@ -68,6 +68,9 @@ class Bridge:
     return CommandResult(success=True, message=f"Mission {self.mission_definition.name} loaded successfully.")
 
   def start_mission(self) -> CommandResult:
+    if self.mission_definition is None:
+      return CommandResult(success=False, message="Cannot start mission. No mission loaded.")
+
     return self.mission.start_mission(self.mission_definition)
 
   def get_mission_status(self) -> MissionStatus:
