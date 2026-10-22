@@ -1,0 +1,22 @@
+name: sample_scenario
+
+waypoints:
+  - id: "start"
+    x: 0.0
+    y: 0.0
+    yaw: 0.0
+
+  - id: "target_1"
+    x: 10.0
+    y: 10.0
+    yaw: 0.0
+  
+  - id: "target_2"
+    x: -10.0
+    y: -10.0
+    yaw: 0.0
+  
+  - id: "end"
+    x: 0.0
+    y: 0.0
+    yaw: 0.0
