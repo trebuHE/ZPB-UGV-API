@@ -1,4 +1,4 @@
-name: sample_scenario
+name: sample_mission
 
 waypoints:
   - id: "start"
