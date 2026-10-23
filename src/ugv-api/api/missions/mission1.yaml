@@ -7,13 +7,13 @@ waypoints:
     yaw: 0.0
 
   - id: "target_1"
-    x: 10.0
-    y: 10.0
+    x: 4.0
+    y: 0.0
     yaw: 0.0
   
   - id: "target_2"
-    x: -10.0
-    y: -10.0
+    x: 4.0
+    y: -4.0
     yaw: 0.0
   
   - id: "end"
