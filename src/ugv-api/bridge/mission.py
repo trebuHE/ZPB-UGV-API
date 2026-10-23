@@ -19,7 +19,7 @@ class MissionManager:
     self._navigation = navigation
     self._hardware = hardware
 
-    self._mission_definition: MissionDefinition | None = None
+    self._loaded_mission_definition: MissionDefinition | None = None
     self._status = MissionStatus()
     self._mission_lock = threading.Lock()
     self._mission_thread: threading.Thread | None = None
@@ -58,7 +58,7 @@ class MissionManager:
         self._status.error_message = f"Unexpected execution error: {e}"
       self._node.get_logger().error(f"Mission crashed: {e}")
 
-  def load_mission(self, content: str) -> CommandResult:
+  def load(self, content: str) -> CommandResult:
     try:
       raw_data = yaml.safe_load(content)
 
@@ -70,17 +70,17 @@ class MissionManager:
 
     try:
       with self._mission_lock:
-        self._mission_definition = MissionDefinition(**raw_data)
+        self._loaded_mission_definition = MissionDefinition(**raw_data)
 
     except Exception as e:  # noqa: BLE001
       return CommandResult(success=False, message=f"Mission Schema Validation failed: {e!s}")
 
-    return CommandResult(success=True, message=f"Mission {self._mission_definition.name} loaded successfully.")
+    return CommandResult(success=True, message=f"Mission {self._loaded_mission_definition.name} loaded successfully.")
 
-  def start_mission(self, mission: MissionDefinition | None = None) -> CommandResult:
+  def start(self, mission: MissionDefinition | None = None) -> CommandResult:
     with self._mission_lock:
       if mission is None:
-        mission = self._mission_definition
+        mission = self._loaded_mission_definition
 
       if self._status.state == MissionState.RUNNING:
         return CommandResult(success=False, message="Cannot start mission! One is already running.")
@@ -116,7 +116,7 @@ class MissionManager:
   @property
   def is_mission_loaded(self) -> bool:
     with self._mission_lock:
-      return self._mission_definition is not None
+      return self._loaded_mission_definition is not None
 
   def get_status(self) -> MissionStatus:
     return self._status

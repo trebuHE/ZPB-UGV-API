@@ -49,13 +49,13 @@ class Bridge:
     return self.hardware.is_slam_active(timeout_sec)
 
   def load_mission(self, content: str) -> CommandResult:
-    return self.mission.load_mission(content)
+    return self.mission.load(content)
 
   def start_mission(self) -> CommandResult:
     if not self.mission.is_mission_loaded:
       return CommandResult(success=False, message="Cannot start mission. No mission loaded.")
 
-    return self.mission.start_mission()
+    return self.mission.start()
 
   def get_mission_status(self) -> MissionStatus:
     return self.mission.get_status()
