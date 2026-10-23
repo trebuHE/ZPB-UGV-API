@@ -26,7 +26,7 @@ class Bridge:
     self.telemetry = TelemetryManager(self._node, ns)
     self.hardware = HardwareManager(self._node, ns)
     self.navigation = NavigationManager(self._node, ns)
-    self.mission = MissionManager(self._node, self.navigation, self.hardware)
+    self.mission = MissionManager(self._node, self.navigation, self.hardware, self.telemetry)
 
     self._thread = threading.Thread(
       target=rclpy.spin, args=(self._node,), daemon=True
