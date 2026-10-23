@@ -10,6 +10,7 @@ from rclpy.node import Node
 from bridge.hardware import HardwareManager
 from bridge.navigation import NavigationManager
 from bridge.telemetry import TelemetryManager
+from bridge.utils import log_error, log_info, log_warn
 
 
 class MissionManager:
@@ -27,76 +28,79 @@ class MissionManager:
     self._mission_thread: threading.Thread | None = None
 
   def _run_mission_sequence(self, mission: MissionDefinition):
-    self._node.get_logger().info(f"Starting mission sequence: {mission.name}")
+    logger = self._node.get_logger()
+    log_info(f"Starting mission sequence: {mission.name}", logger=logger)
     try:
       for index, wp in enumerate(mission.waypoints):
         with self._mission_lock:
           self._status.current_waypoint_id = wp.id
           self._status.current_waypoint_index = index
 
-        self._node.get_logger().info(f"Navigating to waypoint {wp.id} (x={wp.x}, y={wp.y})")
+        log_info(f"Navigating to waypoint {wp.id} (x={wp.x}, y={wp.y})", logger=logger)
         success = self._navigation.navigate_to_waypoint(wp)
 
         if not success:
           with self._mission_lock:
             self._status.state = MissionState.FAILED
             self._status.error_message = f"Failed to reach waypoint {wp.id}"
-          self._node.get_logger().error(f"Failed to reach waypoint {wp.id}")
+          log_error(f"Failed to reach waypoint {wp.id}", logger=logger)
           return
 
-        self._node.get_logger().info(f"Reached waypoint {wp.id}. Waiting 2 seconds...")
+        log_info(f"Reached waypoint {wp.id}. Waiting 2 seconds...", logger=logger)
         time.sleep(2.0)
 
       with self._mission_lock:
         self._status.state = MissionState.COMPLETED
-      self._node.get_logger().info(f"Mission {mission.name} completed successfully")
+      log_info(f"Mission {mission.name} completed successfully", logger=logger)
 
     except Exception as e:  # noqa: BLE001
       with self._mission_lock:
         self._status.state = MissionState.FAILED
         self._status.error_message = f"Unexpected execution error: {e}"
-      self._node.get_logger().error(f"Mission crashed: {e}")
+      log_error(f"Mission crashed: {e}", logger=logger)
 
   def load(self, content: str) -> CommandResult:
+    logger = self._node.get_logger()
     try:
       raw_data = yaml.safe_load(content)
 
     except yaml.YAMLError as e:
-      return CommandResult(success=False, message=f"Invalid YAML Syntax: {e!s}")
+      return log_error(f"Invalid YAML Syntax: {e!s}", logger=logger)
 
     if not isinstance(raw_data, dict):
-      return CommandResult(success=False, message="Invalid YAML structure. Root element must be a dictionary.")
+      return log_error("Invalid YAML structure. Root element must be a dictionary.", logger=logger)
 
     try:
       with self._mission_lock:
         self._loaded_mission_definition = MissionDefinition(**raw_data)
 
     except Exception as e:  # noqa: BLE001
-      return CommandResult(success=False, message=f"Mission Schema Validation failed: {e!s}")
+      return log_error(f"Mission Schema Validation failed: {e!s}", logger=logger)
 
-    return CommandResult(success=True, message=f"Mission {self._loaded_mission_definition.name} loaded successfully.")
+    return log_info(f"Mission {self._loaded_mission_definition.name} loaded successfully.", logger=logger)
 
   def start(self, mission: MissionDefinition | None = None) -> CommandResult:
+    logger = self._node.get_logger()
     with self._mission_lock:
       if mission is None:
         mission = self._loaded_mission_definition
 
       if self._status.state == MissionState.RUNNING:
-        return CommandResult(success=False, message="Cannot start mission! One is already running.")
+        return log_warn("Cannot start mission! One is already running.", logger=logger)
 
       nav_status = self._hardware.is_navigation_active()
       if not nav_status.success:
-        return CommandResult(success=False, message=f"Cannot start mission! Navigation lifecycle inactive: {nav_status['message']}.")
+        return log_warn(f"Cannot start mission! Navigation lifecycle inactive: {nav_status.message}.", logger=logger)
 
       slam_status = self._hardware.is_slam_active()
       if not slam_status.success:
-        return CommandResult(success=False, message=f"Cannot start mission! SLAM lifecycle inactive: {slam_status['message']}.")
+        return log_warn(f"Cannot start mission! SLAM lifecycle inactive: {slam_status.message}.", logger=logger)
 
       if not self._navigation.wait_for_server(timeout_sec=2.0):
-        return CommandResult(success=False, message="Cannot start mission! Nav2 action server navigate_to_pose unavailable.")
+        return log_warn("Cannot start mission! Nav2 action server navigate_to_pose unavailable.", logger=logger)
 
       if self._telemetry.get_state().e_stop:
-        return CommandResult(success=False, message="Cannot start mission! E-Stop is engaded.")
+        return log_warn("Cannot start mission! E-Stop is engaded.", logger=logger)
        
       self._status = MissionStatus(
         state=MissionState.RUNNING,
@@ -113,7 +117,7 @@ class MissionManager:
       )
       self._mission_thread.start()
 
-    return CommandResult(success=True, message=f"Mission {mission.name} accepted and started in a mission thread")
+    return log_info(f"Mission {mission.name} accepted and started in a mission thread", logger=logger)
 
   @property
   def is_mission_loaded(self) -> bool:
