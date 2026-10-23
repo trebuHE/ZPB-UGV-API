@@ -2,6 +2,8 @@
 
 This document provides a comprehensive reference for the FastAPI endpoints, Pydantic data models, and the internal ROS 2 bridge interface.
 
+---
+
 ## 1. FastAPI Endpoints ([`src/ugv-api/api/main.py`](/src/ugv-api/api/main.py))
 
 | Endpoint | Method | Request Body | Response | Description |
@@ -9,7 +11,8 @@ This document provides a comprehensive reference for the FastAPI endpoints, Pyda
 | `/health` | `GET` | None | `dict` (`{"status": "ok"}`) | Basic health check for the API sidecar container. |
 | `/state` | `GET` | None | [`RobotState`](#robotstate) | Returns the current cached state of the robot (pose, battery, e-stop). |
 | `/e-stop/reset` | `POST` | None | [`CommandResult`](#commandresult) | Triggers the E-Stop reset service on the UGV hardware interface. |
-| `/mission/start` | `POST` | [`MissionDefinition`](#missiondefinition) | [`CommandResult`](#commandresult) | Validates Nav2 & SLAM readiness, checks action servers, and initiates mission execution in a background worker thread. |
+| `/mission/upload` | `POST` | `multipart/form-data` (`file`: `.yaml` / `.yml`) | [`CommandResult`](#commandresult) | Uploads and parses a mission YAML file into the bridge. |
+| `/mission/start` | `POST` | None | [`CommandResult`](#commandresult) | Validates Nav2 & SLAM readiness, checks E-stop status, and initiates loaded mission execution in a background worker thread. |
 | `/mission/status` | `GET` | None | [`MissionStatus`](#missionstatus) | Returns current runtime execution state and progress of the active mission. |
 
 
@@ -71,5 +74,5 @@ The `Bridge` class acts as a facade, owning the single `rclpy` node and backgrou
 - **[`TelemetryManager`](/src/ugv-api/bridge/telemetry.py)**: Subscribes to `/panther/odometry/filtered`, `/panther/battery/battery_status`, and `/panther/hardware/e_stop`, caching thread-safe state snapshots.
 - **[`HardwareManager`](/src/ugv-api/bridge/hardware.py)**: Manages service clients for E-stop triggers/resets and Nav2 / SLAM lifecycle manager activity probes.
 - **[`NavigationManager`](/src/ugv-api/bridge/navigation.py)**: Wraps the Nav2 `NavigateToPose` action client for waypoint traversal.
-- **[`MissionManager`](/src/ugv-api/bridge/mission.py)**: Manages mission validation checks, execution status tracking, and spawns background threads to sequence waypoint navigation.
-- **[`utils.py`](/src/ugv-api/bridge/utils.py)**: Provides quaternion-to-yaw math utilities and reusable QoS profiles.
+- **[`MissionManager`](/src/ugv-api/bridge/mission.py)**: Manages mission YAML validation/loading, execution status tracking, and spawns background threads to sequence waypoint navigation.
+- **[`utils.py`](/src/ugv-api/bridge/utils.py)**: Provides quaternion-to-yaw math utilities, reusable QoS profiles, and logging/command response helpers (`log_info`, `log_warn`, `log_error`).
