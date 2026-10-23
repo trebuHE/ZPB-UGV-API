@@ -3,8 +3,7 @@
 import threading
 
 import rclpy
-import yaml
-from api.models import CommandResult, MissionDefinition, MissionStatus, RobotState
+from api.models import CommandResult, MissionStatus, RobotState
 from rclpy.node import Node
 
 from bridge.hardware import HardwareManager
@@ -29,8 +28,6 @@ class Bridge:
     self.navigation = NavigationManager(self._node, ns)
     self.mission = MissionManager(self._node, self.navigation, self.hardware)
 
-    self.mission_definition: MissionDefinition | None = None
-
     self._thread = threading.Thread(
       target=rclpy.spin, args=(self._node,), daemon=True
     )
@@ -52,26 +49,13 @@ class Bridge:
     return self.hardware.is_slam_active(timeout_sec)
 
   def load_mission(self, content: str) -> CommandResult:
-    try:
-      raw_data = yaml.safe_load(content)
-    except yaml.YAMLError as e:
-      return CommandResult(success=False, message=f"Invalid YAML Syntax: {str(e)}")
-
-    if not isinstance(raw_data, dict):
-      return CommandResult(success=False, message="Invalid YAML structure. Root element must be a dictionary.")
-
-    try:
-      self.mission_definition = MissionDefinition(**raw_data)
-    except Exception as e:
-      return CommandResult(success=False, message=f"Mission Schema Validation failed: {str(e)}")
-
-    return CommandResult(success=True, message=f"Mission {self.mission_definition.name} loaded successfully.")
+    return self.mission.load_mission(content)
 
   def start_mission(self) -> CommandResult:
-    if self.mission_definition is None:
+    if not self.mission.is_mission_loaded:
       return CommandResult(success=False, message="Cannot start mission. No mission loaded.")
 
-    return self.mission.start_mission(self.mission_definition)
+    return self.mission.start_mission()
 
   def get_mission_status(self) -> MissionStatus:
     return self.mission.get_status()

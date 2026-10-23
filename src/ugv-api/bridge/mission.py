@@ -3,6 +3,7 @@
 import threading
 import time
 
+import yaml
 from api.models import CommandResult, MissionDefinition, MissionState, MissionStatus
 from rclpy.node import Node
 
@@ -18,6 +19,7 @@ class MissionManager:
     self._navigation = navigation
     self._hardware = hardware
 
+    self._mission_definition: MissionDefinition | None = None
     self._status = MissionStatus()
     self._mission_lock = threading.Lock()
     self._mission_thread: threading.Thread | None = None
@@ -56,9 +58,30 @@ class MissionManager:
         self._status.error_message = f"Unexpected execution error: {e}"
       self._node.get_logger().error(f"Mission crashed: {e}")
 
+  def load_mission(self, content: str) -> CommandResult:
+    try:
+      raw_data = yaml.safe_load(content)
 
-  def start_mission(self, mission: MissionDefinition) -> CommandResult:
+    except yaml.YAMLError as e:
+      return CommandResult(success=False, message=f"Invalid YAML Syntax: {e!s}")
+
+    if not isinstance(raw_data, dict):
+      return CommandResult(success=False, message="Invalid YAML structure. Root element must be a dictionary.")
+
+    try:
+      with self._mission_lock:
+        self._mission_definition = MissionDefinition(**raw_data)
+
+    except Exception as e:  # noqa: BLE001
+      return CommandResult(success=False, message=f"Mission Schema Validation failed: {e!s}")
+
+    return CommandResult(success=True, message=f"Mission {self._mission_definition.name} loaded successfully.")
+
+  def start_mission(self, mission: MissionDefinition | None = None) -> CommandResult:
     with self._mission_lock:
+      if mission is None:
+        mission = self._mission_definition
+
       if self._status.state == MissionState.RUNNING:
         return CommandResult(success=False, message="Cannot start mission! One is already running.")
 
@@ -89,6 +112,11 @@ class MissionManager:
       self._mission_thread.start()
 
     return CommandResult(success=True, message=f"Mission {mission.name} accepted and started in a mission thread")
+
+  @property
+  def is_mission_loaded(self) -> bool:
+    with self._mission_lock:
+      return self._mission_definition is not None
 
   def get_status(self) -> MissionStatus:
     return self._status
