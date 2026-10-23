@@ -9,7 +9,7 @@ from nav2_msgs.action import NavigateToPose
 from rclpy.action import ActionClient
 from rclpy.node import Node
 
-from bridge.utils import yaw_to_quaternion_z_w
+from bridge.utils import log_error, yaw_to_quaternion_z_w
 
 
 class NavigationManager:
@@ -50,7 +50,7 @@ class NavigationManager:
     goal_handle = send_goal_future.result()
 
     if not goal_handle.accepted:
-      self._node.get_logger().error(f"Goal for waypoint {wp.id} rejected by Nav2")
+      log_error(f"Goal for waypoint {wp.id} rejected by Nav2", logger=self._node.get_logger())
       return False
 
     result_event = threading.Event()

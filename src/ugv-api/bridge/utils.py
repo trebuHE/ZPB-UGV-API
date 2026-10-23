@@ -2,6 +2,7 @@
 
 import math
 
+from api.models import CommandResult
 from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
 
 
@@ -33,3 +34,21 @@ def get_latched_qos(depth: int = 1) -> QoSProfile:
     durability=DurabilityPolicy.TRANSIENT_LOCAL,
     depth=depth,
   )
+
+
+def log_info(message: str, success: bool = True, logger=None) -> CommandResult:
+  if logger is not None:
+    logger.info(message)
+  return CommandResult(success=success, message=message)
+
+
+def log_warn(message: str, success: bool = False, logger=None) -> CommandResult:
+  if logger is not None:
+    logger.warn(message)  # noqa: G010
+  return CommandResult(success=success, message=message)
+
+
+def log_error(message: str, success: bool = False, logger=None) -> CommandResult:
+  if logger is not None:
+    logger.error(message)
+  return CommandResult(success=success, message=message)
