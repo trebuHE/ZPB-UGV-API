@@ -26,8 +26,8 @@ For a detailed specification of FastAPI endpoints, Pydantic data models, and the
 
 ## 4. Missions and external scripts
 
-- A mission is a YAML/JSON file: a list of waypoints plus attached actions (`on_arrival`, `during_transit`).
-- Mission sequencing (drive → execute → next) is handled by the **bridge**, not by Nav2.
+- A mission is uploaded via HTTP as a YAML file (`/mission/upload`), parsed and validated against Pydantic models in the bridge.
+- Mission sequencing (drive → wait → next waypoint) is handled by the **bridge** via Nav2 `NavigateToPose` actions, with runtime status tracked via `/mission/status`.
 - Scripts have **no access to motion control** - read-only telemetry, designated measurement devices and artifact output only.
 - The runner guarantees: time/resource limits, log capture into the event stream, error handling (status ok/failed/timeout) and artifact storage via the API.
 
