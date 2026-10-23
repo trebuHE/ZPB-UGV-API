@@ -9,15 +9,17 @@ from rclpy.node import Node
 
 from bridge.hardware import HardwareManager
 from bridge.navigation import NavigationManager
+from bridge.telemetry import TelemetryManager
 
 
 class MissionManager:
   """Manages mission execution, validation, and threaded sequencing."""
 
-  def __init__(self, node: Node, navigation: NavigationManager, hardware: HardwareManager):
+  def __init__(self, node: Node, navigation: NavigationManager, hardware: HardwareManager, telemetry: TelemetryManager):
     self._node = node
     self._navigation = navigation
     self._hardware = hardware
+    self._telemetry = telemetry
 
     self._loaded_mission_definition: MissionDefinition | None = None
     self._status = MissionStatus()
@@ -42,15 +44,12 @@ class MissionManager:
           self._node.get_logger().error(f"Failed to reach waypoint {wp.id}")
           return
 
-        
-
         self._node.get_logger().info(f"Reached waypoint {wp.id}. Waiting 2 seconds...")
         time.sleep(2.0)
 
       with self._mission_lock:
         self._status.state = MissionState.COMPLETED
       self._node.get_logger().info(f"Mission {mission.name} completed successfully")
-
 
     except Exception as e:  # noqa: BLE001
       with self._mission_lock:
@@ -87,15 +86,18 @@ class MissionManager:
 
       nav_status = self._hardware.is_navigation_active()
       if not nav_status.success:
-        return CommandResult(success=False, message=f"Navigation lifecycle inactive: {nav_status['message']}")
+        return CommandResult(success=False, message=f"Cannot start mission! Navigation lifecycle inactive: {nav_status['message']}.")
 
       slam_status = self._hardware.is_slam_active()
       if not slam_status.success:
-        return CommandResult(success=False, message=f"SLAM lifecycle inactive: {slam_status['message']}")
+        return CommandResult(success=False, message=f"Cannot start mission! SLAM lifecycle inactive: {slam_status['message']}.")
 
       if not self._navigation.wait_for_server(timeout_sec=2.0):
-        return CommandResult(success=False, message="Nav2 action server navigate_to_pose unavailable")
+        return CommandResult(success=False, message="Cannot start mission! Nav2 action server navigate_to_pose unavailable.")
 
+      if self._telemetry.get_state().e_stop:
+        return CommandResult(success=False, message="Cannot start mission! E-Stop is engaded.")
+       
       self._status = MissionStatus(
         state=MissionState.RUNNING,
         mission_name=mission.name,
