@@ -1,4 +1,4 @@
-from PySide6 import QThread, Signal
+from PySide6.QtCore import QThread, Signal
 
 class APIWorker(QThread):
 	'''QThread for running API Calls asynchronusly'''
