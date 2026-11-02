@@ -2,6 +2,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Tuple
 
+@dataclass(frozen=True)
+class Waypoint:
+  id: int
+  x: float  # World X in meters
+  y: float  # World Y in meters
+  yaw: float  # Heading in radians (-pi to pi)
+
 
 @dataclass(frozen=True)
 class MapMetadata:
