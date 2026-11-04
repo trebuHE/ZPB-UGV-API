@@ -8,3 +8,4 @@ __pycache__/
 
 # VS Code (keep .devcontainer, ignore local noise)
 .vscode/
+.aider*
