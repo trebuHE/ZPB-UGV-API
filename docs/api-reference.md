@@ -43,6 +43,7 @@ This document provides a comprehensive reference for the FastAPI endpoints, Pyda
 - `x`: `float` - Target X coordinate in meters (positive ahead direction).
 - `y`: `float` - Target Y coordinate in meters (positive left direction).
 - `yaw`: `float` - Target angle in radians (default: `0.0`).
+- `wait`: `bool` - Whether the robot stops and awaits a continue command (default: `true`).
 
 ### `MissionDefinition`
 - `name`: `str` - Mission name (minimum length: 1).
