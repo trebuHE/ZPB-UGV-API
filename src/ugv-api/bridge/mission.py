@@ -100,7 +100,7 @@ class MissionManager:
         return log_warn("Cannot start mission! Nav2 action server navigate_to_pose unavailable.", logger=logger)
 
       if self._telemetry.get_state().e_stop:
-        return log_warn("Cannot start mission! E-Stop is engaded.", logger=logger)
+        return log_warn("Cannot start mission! E-Stop is engaged.", logger=logger)
        
       self._status = MissionStatus(
         state=MissionState.RUNNING,
