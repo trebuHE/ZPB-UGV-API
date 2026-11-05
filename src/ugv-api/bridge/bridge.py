@@ -60,6 +60,9 @@ class Bridge:
   def get_mission_status(self) -> MissionStatus:
     return self.mission.get_status()
 
+  def continue_mission(self, waypoint_id: str | None = None) -> CommandResult:
+    return self.mission.continue_mission(waypoint_id)
+
   def shutdown(self):
     if rclpy.ok():
       rclpy.try_shutdown()
