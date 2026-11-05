@@ -1,7 +1,6 @@
 """Mission sequencing and background worker thread."""
 
 import threading
-import time
 
 import yaml
 from api.models import CommandResult, MissionDefinition, MissionState, MissionStatus
@@ -26,6 +25,7 @@ class MissionManager:
     self._status = MissionStatus()
     self._mission_lock = threading.Lock()
     self._mission_thread: threading.Thread | None = None
+    self._continue_event = threading.Event()
 
   def _run_mission_sequence(self, mission: MissionDefinition):
     logger = self._node.get_logger()
@@ -46,8 +46,19 @@ class MissionManager:
           log_error(f"Failed to reach waypoint {wp.id}", logger=logger)
           return
 
-        log_info(f"Reached waypoint {wp.id}. Waiting 2 seconds...", logger=logger)
-        time.sleep(2.0)
+        with self._mission_lock:
+          self._status.state = MissionState.WAITING_AT_WAYPOINT
+
+        log_info(f"Reached waypoint {wp.id}. Waiting for continue command...", logger=logger)
+        self._continue_event.clear()
+        self._continue_event.wait()
+
+        with self._mission_lock:
+          if self._status.state != MissionState.WAITING_AT_WAYPOINT:
+            return
+          self._status.state = MissionState.RUNNING
+
+        log_info(f"Continuing mission from waypoint {wp.id}...", logger=logger)
 
       with self._mission_lock:
         self._status.state = MissionState.COMPLETED
@@ -85,8 +96,8 @@ class MissionManager:
       if mission is None:
         mission = self._loaded_mission_definition
 
-      if self._status.state == MissionState.RUNNING:
-        return log_warn("Cannot start mission! One is already running.", logger=logger)
+      if self._status.state in (MissionState.RUNNING, MissionState.WAITING_AT_WAYPOINT):
+        return log_warn("Cannot start mission! One is already in progress.", logger=logger)
 
       nav_status = self._hardware.is_navigation_active()
       if not nav_status.success:
@@ -101,7 +112,8 @@ class MissionManager:
 
       if self._telemetry.get_state().e_stop:
         return log_warn("Cannot start mission! E-Stop is engaged.", logger=logger)
-       
+
+      self._continue_event.clear()
       self._status = MissionStatus(
         state=MissionState.RUNNING,
         mission_name=mission.name,
@@ -118,6 +130,27 @@ class MissionManager:
       self._mission_thread.start()
 
     return log_info(f"Mission {mission.name} accepted and started in a mission thread", logger=logger)
+
+  def continue_mission(self, waypoint_id: str | None = None) -> CommandResult:
+    logger = self._node.get_logger()
+    with self._mission_lock:
+      if self._status.state != MissionState.WAITING_AT_WAYPOINT:
+        return log_warn(
+          f"Cannot continue mission. Robot is not waiting at a waypoint (current state: {self._status.state.value}).",
+          logger=logger,
+        )
+
+      if waypoint_id is not None and self._status.current_waypoint_id != waypoint_id:
+        return log_warn(
+          f"Waypoint ID mismatch. Expected '{self._status.current_waypoint_id}', got '{waypoint_id}'.",
+          logger=logger,
+        )
+
+      self._continue_event.set()
+      return log_info(
+        f"Continuing mission from waypoint '{self._status.current_waypoint_id}'.",
+        logger=logger,
+      )
 
   @property
   def is_mission_loaded(self) -> bool:

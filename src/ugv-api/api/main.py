@@ -55,3 +55,8 @@ def reset_e_stop():
 @app.get("/mission/status", response_model=MissionStatus)
 def mission_status():
   return BRIDGE.get_mission_status()
+
+
+@app.post("/mission/continue", response_model=CommandResult)
+def continue_mission(waypoint_id: str | None = None):
+  return BRIDGE.continue_mission(waypoint_id)
