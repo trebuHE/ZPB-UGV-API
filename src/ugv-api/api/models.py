@@ -27,6 +27,7 @@ class Waypoint(BaseModel):
   x: float = Field(..., description="X coordinate in meters (positive ahead direction)")
   y: float = Field(..., description="Y coordinate in meters (positive left direction)")
   yaw: float = Field(default=0.0, description="Target angle in radians")
+  wait: bool = Field(default=True, description="Whether the robot should wait at this waypoint for a continue command")
 
 class MissionDefinition(BaseModel):
   name: str = Field(..., min_length=1)

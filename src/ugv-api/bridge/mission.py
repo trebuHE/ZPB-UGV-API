@@ -46,19 +46,22 @@ class MissionManager:
           log_error(f"Failed to reach waypoint {wp.id}", logger=logger)
           return
 
-        with self._mission_lock:
-          self._status.state = MissionState.WAITING_AT_WAYPOINT
+        if wp.wait:
+          with self._mission_lock:
+            self._status.state = MissionState.WAITING_AT_WAYPOINT
 
-        log_info(f"Reached waypoint {wp.id}. Waiting for continue command...", logger=logger)
-        self._continue_event.clear()
-        self._continue_event.wait()
+          log_info(f"Reached waypoint {wp.id}. Waiting for continue command...", logger=logger)
+          self._continue_event.clear()
+          self._continue_event.wait()
 
-        with self._mission_lock:
-          if self._status.state != MissionState.WAITING_AT_WAYPOINT:
-            return
-          self._status.state = MissionState.RUNNING
+          with self._mission_lock:
+            if self._status.state != MissionState.WAITING_AT_WAYPOINT:
+              return
+            self._status.state = MissionState.RUNNING
 
-        log_info(f"Continuing mission from waypoint {wp.id}...", logger=logger)
+          log_info(f"Continuing mission from waypoint {wp.id}...", logger=logger)
+        else:
+          log_info(f"Reached waypoint {wp.id} (transition). Proceeding immediately...", logger=logger)
 
       with self._mission_lock:
         self._status.state = MissionState.COMPLETED
