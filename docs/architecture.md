@@ -32,7 +32,7 @@ For a detailed specification of FastAPI endpoints, Pydantic data models, and the
 - Mission sequencing (drive → wait → next waypoint) is handled by the **bridge** via Nav2 `NavigateToPose` actions, with runtime status tracked via `/mission/status`.
 - Handshake Protocol at Waypoints:
   1. Bridge drives the robot to waypoint $N$.
-  2. Upon arrival, the robot stops, and `MissionStatus.state` transitions to `WAITING_FOR_PAYLOAD` (with `current_waypoint_id` set to $N$).
+  2. Upon arrival, the robot stops, and `MissionStatus.state` transitions to `WAITING_AT_WAYPOINT` (with `current_waypoint_id` set to $N$).
   3. The external script on the payload computer detects arrival (via polling `GET /mission/status` or WebSocket events).
   4. The payload computer executes its local measurement routines independently.
   5. When finished, the payload computer calls `POST /mission/continue`.

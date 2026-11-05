@@ -35,6 +35,7 @@ class MissionDefinition(BaseModel):
 class MissionState(str, Enum):
   IDLE = "idle"
   RUNNING = "running"
+  WAITING_AT_WAYPOINT = "waiting_at_waypoint"
   COMPLETED = "completed"
   FAILED = "failed"
   CANCELLED = "cancelled"

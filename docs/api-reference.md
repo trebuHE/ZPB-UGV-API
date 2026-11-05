@@ -14,6 +14,7 @@ This document provides a comprehensive reference for the FastAPI endpoints, Pyda
 | `/mission/upload` | `POST` | `multipart/form-data` (`file`: `.yaml` / `.yml`) | [`CommandResult`](#commandresult) | Uploads and parses a mission YAML file into the bridge. |
 | `/mission/start` | `POST` | None | [`CommandResult`](#commandresult) | Validates Nav2 & SLAM readiness, checks E-stop status, and initiates loaded mission execution in a background worker thread. |
 | `/mission/status` | `GET` | None | [`MissionStatus`](#missionstatus) | Returns current runtime execution state and progress of the active mission. |
+| `/mission/continue` | `POST` | Query param `waypoint_id` (optional) | [`CommandResult`](#commandresult) | Signals the mission sequencer to resume navigation from `WAITING_AT_WAYPOINT` to the next waypoint. |
 
 
 ## 2. Pydantic Models ([`src/ugv-api/api/models.py`](/src/ugv-api/api/models.py))
@@ -50,6 +51,7 @@ This document provides a comprehensive reference for the FastAPI endpoints, Pyda
 ### `MissionState` (Enum)
 - `IDLE` (`"idle"`)
 - `RUNNING` (`"running"`)
+- `WAITING_AT_WAYPOINT` (`"waiting_at_waypoint"`)
 - `COMPLETED` (`"completed"`)
 - `FAILED` (`"failed"`)
 - `CANCELLED` (`"cancelled"`)
