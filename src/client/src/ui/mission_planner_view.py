@@ -146,6 +146,16 @@ class MissionPlannerView(QWidget):
     self.btn_start.setEnabled(False)
     self.btn_start.clicked.connect(self._on_start)
 
+    self.btn_continue = QPushButton("⏭ Continue")
+    self.btn_continue.setStyleSheet("background-color: #ffc107; color: black; font-weight: bold; padding: 10px;")
+    self.btn_continue.setEnabled(False)
+    self.btn_continue.clicked.connect(self._on_continue)
+
+    action_layout.addWidget(self.btn_upload)
+    action_layout.addWidget(self.btn_start)
+    action_layout.addWidget(self.btn_continue) # Add to layout
+    side_layout.addLayout(action_layout)
+
     action_layout.addWidget(self.btn_upload)
     action_layout.addWidget(self.btn_start)
     side_layout.addLayout(action_layout)
@@ -245,17 +255,33 @@ class MissionPlannerView(QWidget):
   def _fetch_state(self):
     try:
       import requests
-      response = requests.get(f"{self.api_client.base_url}/state", timeout=1.0)
-      if response.status_code == 200:
-        state = response.json()
+      res_state = requests.get(f"{self.api_client.base_url}/state", timeout=1.0)
+      if res_state.status_code == 200:
+        state = res_state.json()
         pose = state.get("pose")
-        
         if pose:
           self.canvas.update_robot_pose(pose["x"], pose["y"], pose["yaw"])
+
+      res_mission = requests.get(f"{self.api_client.base_url}/mission/status", timeout=1.0)
+      if res_mission.status_code == 200:
+        mission_status = res_mission.json()
+        
+        # Unlock the continue button ONLY when the robot is halted at a waypoint
+        if mission_status.get("state") == "waiting_at_waypoint":
+          self.btn_continue.setEnabled(True)
         else:
-          # API is responding, but ROS bridge hasn't received Odometry yet
-          print("Telemetry OK: Waiting for 'pose' data from ROS 2...")
-      else:
-        print(f"API Error: Status {response.status_code}")
-    except Exception as e:
-      print(f"Telemetry network error: {e}")
+          self.btn_continue.setEnabled(False)
+
+    except Exception:
+      pass
+
+  def _on_continue(self):
+    self.btn_continue.setEnabled(False)
+    self.worker = APIWorker(self.api_client.continue_mission)
+    self.worker.finished.connect(self._on_continue_success)
+    self.worker.error.connect(self._on_api_error)
+    self.worker.start()
+
+  def _on_continue_success(self, result: dict):
+    # The button will re-enable automatically on the next poll if it reaches another waypoint
+    pass
