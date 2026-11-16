@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
 )
 from src.core.models import MapData, Waypoint
 from src.ui.waypoint_item import WaypointItem
+from src.ui.robot_item import RobotItem
 
 
 class CanvasMode(Enum):
@@ -47,6 +48,9 @@ class MapCanvas(QGraphicsView):
     self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
     self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
     self.setMouseTracking(True)
+    self._robot_item = RobotItem()
+    self._scene.addItem(self._robot_item)
+    self._robot_item.hide()
     self._update_drag_mode()
 
   def set_mode(self, mode: CanvasMode):
@@ -64,10 +68,18 @@ class MapCanvas(QGraphicsView):
   def load_map(self, map_data: MapData):
     self._map_data = map_data
     self.clear_waypoints()
-    self._scene.clear()
+    
+    # 1. Remove the old map image specifically (don't use self._scene.clear())
+    if self._pixmap_item:
+      self._scene.removeItem(self._pixmap_item)
 
+    # 2. Add the new map image
     pixmap = QPixmap(str(map_data.metadata.image_path))
     self._pixmap_item = self._scene.addPixmap(pixmap)
+    
+    # 3. Force the map to the absolute background so it doesn't cover the robot
+    self._pixmap_item.setZValue(-10.0) 
+
     self._scene.setSceneRect(
         0, 0, map_data.image_width, map_data.image_height
     )
@@ -207,3 +219,10 @@ class MapCanvas(QGraphicsView):
       self.fitInView(
           self._scene.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio
       )
+  def update_robot_pose(self, x_w: float, y_w: float, yaw: float):
+    if not self._map_data:
+      return
+
+    u, v = self._map_data.world_to_pixel(x_w, y_w)
+    self._robot_item.show()
+    self._robot_item.update_pose(QPointF(u, v), yaw)
