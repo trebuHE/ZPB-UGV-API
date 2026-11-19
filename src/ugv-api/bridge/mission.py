@@ -35,6 +35,7 @@ class MissionManager:
         with self._mission_lock:
           self._status.current_waypoint_id = wp.id
           self._status.current_waypoint_index = index
+          self._status.measurement_script = None
 
         log_info(f"Navigating to waypoint {wp.id} (x={wp.x}, y={wp.y})", logger=logger)
         success = self._navigation.navigate_to_waypoint(wp)
@@ -43,12 +44,14 @@ class MissionManager:
           with self._mission_lock:
             self._status.state = MissionState.FAILED
             self._status.error_message = f"Failed to reach waypoint {wp.id}"
+            self._status.measurement_script = None
           log_error(f"Failed to reach waypoint {wp.id}", logger=logger)
           return
 
         if wp.wait:
           with self._mission_lock:
             self._status.state = MissionState.WAITING_AT_WAYPOINT
+            self._status.measurement_script = wp.measurement_script
 
           log_info(f"Reached waypoint {wp.id}. Waiting for continue command...", logger=logger)
           self._continue_event.clear()
@@ -58,6 +61,7 @@ class MissionManager:
             if self._status.state != MissionState.WAITING_AT_WAYPOINT:
               return
             self._status.state = MissionState.RUNNING
+            self._status.measurement_script = None
 
           log_info(f"Continuing mission from waypoint {wp.id}...", logger=logger)
         else:
@@ -65,12 +69,14 @@ class MissionManager:
 
       with self._mission_lock:
         self._status.state = MissionState.COMPLETED
+        self._status.measurement_script = None
       log_info(f"Mission {mission.name} completed successfully", logger=logger)
 
     except Exception as e:  # noqa: BLE001
       with self._mission_lock:
         self._status.state = MissionState.FAILED
         self._status.error_message = f"Unexpected execution error: {e}"
+        self._status.measurement_script = None
       log_error(f"Mission crashed: {e}", logger=logger)
 
   def load(self, content: str) -> CommandResult:
