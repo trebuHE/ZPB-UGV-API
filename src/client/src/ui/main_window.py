@@ -9,7 +9,7 @@ class MainWindow(QMainWindow):
   def __init__(self):
     super().__init__()
     self.setWindowTitle("Husarion UGV Mission Control")
-    self.resize(1440, 810)
+    self.resize(1280, 760)
 
     self.stack = QStackedWidget(self)
     self.setCentralWidget(self.stack)

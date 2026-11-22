@@ -26,7 +26,7 @@ class WaypointItem(QGraphicsItemGroup):
     self.waypoint = waypoint
     self.setPos(scene_pos)
 
-    pin_color = QColor("#007ACC")  # Professional blue
+    pin_color = QColor("#007ACC") if waypoint.wait else QColor("#28a745")
     pin_border = QColor("#FFFFFF")
     text_color = QColor("#FFFFFF")
 
@@ -44,13 +44,13 @@ class WaypointItem(QGraphicsItemGroup):
     label.setPos(-rect.width() / 2, -rect.height() / 2)
 
     self.arrow_group = QGraphicsItemGroup(self)
-    self._build_arrow()
+    self._build_arrow(pin_color)
     self.arrow_group.setRotation(scene_angle_deg)
 
     self.setZValue(10.0)
 
-  def _build_arrow(self):
-    stem_pen = QPen(QColor("#007ACC"), 3.0)
+  def _build_arrow(self, color: QColor):
+    stem_pen = QPen(color, 3.0)
     stem_pen.setCapStyle(Qt.PenCapStyle.RoundCap)
 
     path = QPainterPath()
@@ -69,5 +69,5 @@ class WaypointItem(QGraphicsItemGroup):
     head_path = QPainterPath()
     head_path.addPolygon(arrow_head)
     head_item.setPath(head_path)
-    head_item.setBrush(QBrush(QColor("#007ACC")))
+    head_item.setBrush(QBrush(color))
     head_item.setPen(QPen(Qt.PenStyle.NoPen))

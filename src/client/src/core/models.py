@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Tuple
+from typing import Tuple
+
 
 @dataclass(frozen=True)
 class Waypoint:
@@ -8,6 +9,7 @@ class Waypoint:
   x: float  # World X in meters
   y: float  # World Y in meters
   yaw: float  # Heading in radians (-pi to pi)
+  wait: bool = True  # True = wait for /mission/continue, False = transit immediately
 
 
 @dataclass(frozen=True)

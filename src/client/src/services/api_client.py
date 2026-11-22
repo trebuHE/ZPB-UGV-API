@@ -23,7 +23,7 @@ class APIClient:
                 "x": float(round(wp.x, 3)),
                 "y": float(round(wp.y, 3)),
                 "yaw": float(round(wp.yaw, 3)),
-                "wait": True  # Require robot to wait for /mission/continue
+                "wait": bool(wp.wait),
             }
             for wp in waypoints
         ],

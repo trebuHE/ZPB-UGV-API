@@ -1,7 +1,6 @@
-from enum import Enum, auto
 import math
 from typing import List
-from PySide6.QtCore import QLineF, QPointF, Qt, Signal
+from PySide6.QtCore import QLineF, QPoint, QPointF, Qt, Signal
 from PySide6.QtGui import QColor, QMouseEvent, QPainter, QPen, QPixmap, QWheelEvent
 from PySide6.QtWidgets import (
     QGraphicsLineItem,
@@ -11,13 +10,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 from src.core.models import MapData, Waypoint
-from src.ui.waypoint_item import WaypointItem
 from src.ui.robot_item import RobotItem
-
-
-class CanvasMode(Enum):
-  PAN = auto()
-  ADD_WAYPOINT = auto()
+from src.ui.waypoint_item import WaypointItem
 
 
 class MapCanvas(QGraphicsView):
@@ -32,7 +26,7 @@ class MapCanvas(QGraphicsView):
 
     self._map_data: MapData | None = None
     self._pixmap_item: QGraphicsPixmapItem | None = None
-    self._mode: CanvasMode = CanvasMode.PAN
+    self._waypoint_wait: bool = True
 
     self._waypoints: List[Waypoint] = []
     self._waypoint_items: List[WaypointItem] = []
@@ -41,44 +35,37 @@ class MapCanvas(QGraphicsView):
     self._drag_start_scene: QPointF | None = None
     self._preview_arrow_line: QGraphicsLineItem | None = None
 
+    self._is_panning: bool = False
+    self._pan_start_pos: QPoint | None = None
+
     self.setRenderHint(QPainter.RenderHint.Antialiasing)
     self.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
     self.setTransformationAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
     self.setResizeAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
     self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
     self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+    self.setDragMode(QGraphicsView.DragMode.NoDrag)
+    self.setCursor(Qt.CursorShape.CrossCursor)
     self.setMouseTracking(True)
+
     self._robot_item = RobotItem()
     self._scene.addItem(self._robot_item)
     self._robot_item.hide()
-    self._update_drag_mode()
 
-  def set_mode(self, mode: CanvasMode):
-    self._mode = mode
-    self._update_drag_mode()
-
-  def _update_drag_mode(self):
-    if self._mode == CanvasMode.PAN:
-      self.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
-      self.setCursor(Qt.CursorShape.OpenHandCursor)
-    else:
-      self.setDragMode(QGraphicsView.DragMode.NoDrag)
-      self.setCursor(Qt.CursorShape.CrossCursor)
+  def set_waypoint_wait(self, wait: bool):
+    """Sets whether newly placed waypoints pause for /mission/continue."""
+    self._waypoint_wait = wait
 
   def load_map(self, map_data: MapData):
     self._map_data = map_data
     self.clear_waypoints()
-    
-    # 1. Remove the old map image specifically (don't use self._scene.clear())
+
     if self._pixmap_item:
       self._scene.removeItem(self._pixmap_item)
 
-    # 2. Add the new map image
     pixmap = QPixmap(str(map_data.metadata.image_path))
     self._pixmap_item = self._scene.addPixmap(pixmap)
-    
-    # 3. Force the map to the absolute background so it doesn't cover the robot
-    self._pixmap_item.setZValue(-10.0) 
+    self._pixmap_item.setZValue(-10.0)
 
     self._scene.setSceneRect(
         0, 0, map_data.image_width, map_data.image_height
@@ -92,7 +79,44 @@ class MapCanvas(QGraphicsView):
     else:
       self.scale(1 / zoom_factor, 1 / zoom_factor)
 
+  def mousePressEvent(self, event: QMouseEvent):
+    if event.button() == Qt.MouseButton.RightButton:
+      self._is_panning = True
+      self._pan_start_pos = event.position().toPoint()
+      self.setCursor(Qt.CursorShape.ClosedHandCursor)
+      event.accept()
+      return
+
+    if (
+        event.button() == Qt.MouseButton.LeftButton
+        and self._map_data
+        and not self._is_panning
+    ):
+      scene_pt = self.mapToScene(event.pos())
+      if (
+          0 <= scene_pt.x() <= self._map_data.image_width
+          and 0 <= scene_pt.y() <= self._map_data.image_height
+      ):
+        self._drag_start_scene = scene_pt
+        event.accept()
+        return
+
+    super().mousePressEvent(event)
+
   def mouseMoveEvent(self, event: QMouseEvent):
+    if self._is_panning and self._pan_start_pos is not None:
+      current_pos = event.position().toPoint()
+      delta = current_pos - self._pan_start_pos
+      self._pan_start_pos = current_pos
+      self.horizontalScrollBar().setValue(
+          self.horizontalScrollBar().value() - delta.x()
+      )
+      self.verticalScrollBar().setValue(
+          self.verticalScrollBar().value() - delta.y()
+      )
+      event.accept()
+      return
+
     super().mouseMoveEvent(event)
     if not self._map_data:
       return
@@ -106,9 +130,10 @@ class MapCanvas(QGraphicsView):
       x_w, y_w = self._map_data.pixel_to_world(scene_pt.x(), scene_pt.y())
       self.coordinates_hovered.emit(x_w, y_w)
 
-    if self._mode == CanvasMode.ADD_WAYPOINT and self._drag_start_scene:
+    if self._drag_start_scene is not None:
+      preview_color = QColor("#007ACC") if self._waypoint_wait else QColor("#28a745")
       if not self._preview_arrow_line:
-        pen = QPen(QColor("#007ACC"), 2.0, Qt.PenStyle.DashLine)
+        pen = QPen(preview_color, 2.0, Qt.PenStyle.DashLine)
         self._preview_arrow_line = self._scene.addLine(
             QLineF(self._drag_start_scene, scene_pt), pen
         )
@@ -118,26 +143,17 @@ class MapCanvas(QGraphicsView):
             QLineF(self._drag_start_scene, scene_pt)
         )
 
-  def mousePressEvent(self, event: QMouseEvent):
-    if (
-        self._mode == CanvasMode.ADD_WAYPOINT
-        and event.button() == Qt.MouseButton.LeftButton
-        and self._map_data
-    ):
-      scene_pt = self.mapToScene(event.pos())
-      if (
-          0 <= scene_pt.x() <= self._map_data.image_width
-          and 0 <= scene_pt.y() <= self._map_data.image_height
-      ):
-        self._drag_start_scene = scene_pt
-        return
-    super().mousePressEvent(event)
-
   def mouseReleaseEvent(self, event: QMouseEvent):
+    if event.button() == Qt.MouseButton.RightButton and self._is_panning:
+      self._is_panning = False
+      self._pan_start_pos = None
+      self.setCursor(Qt.CursorShape.CrossCursor)
+      event.accept()
+      return
+
     if (
-        self._mode == CanvasMode.ADD_WAYPOINT
-        and event.button() == Qt.MouseButton.LeftButton
-        and self._drag_start_scene
+        event.button() == Qt.MouseButton.LeftButton
+        and self._drag_start_scene is not None
     ):
       release_pt = self.mapToScene(event.pos())
 
@@ -160,6 +176,7 @@ class MapCanvas(QGraphicsView):
           x=x_w,
           y=y_w,
           yaw=round(world_yaw, 3),
+          wait=self._waypoint_wait,
       )
 
       self._add_waypoint_to_scene(wp, self._drag_start_scene, scene_angle_deg)
@@ -170,6 +187,7 @@ class MapCanvas(QGraphicsView):
         self._scene.removeItem(self._preview_arrow_line)
         self._preview_arrow_line = None
       self._drag_start_scene = None
+      event.accept()
       return
 
     super().mouseReleaseEvent(event)
@@ -219,6 +237,7 @@ class MapCanvas(QGraphicsView):
       self.fitInView(
           self._scene.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio
       )
+
   def update_robot_pose(self, x_w: float, y_w: float, yaw: float):
     if not self._map_data:
       return
