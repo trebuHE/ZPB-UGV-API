@@ -1,5 +1,5 @@
 import math
-from PySide6.QtCore import QPointF, QRectF, QSize, Qt, QTimer, QUrl, Signal
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QFormLayout,
     QFrame,
@@ -91,6 +91,17 @@ class TelemetryPanel(QFrame):
     layout.addWidget(mission_group)
     layout.addWidget(self.lbl_m_err)
 
+    self.lbl_m_state = QLabel("--")
+    self.lbl_m_wp = QLabel("--")
+    self.lbl_m_script = QLabel("--")
+    self.lbl_m_script.setWordWrap(True)
+    self.lbl_m_err = QLabel("")
+    self.lbl_m_err.setWordWrap(True)
+    self.lbl_m_err.setStyleSheet("color: #dc3545; font-size: 11px;")
+    mission_form.addRow("State:", self.lbl_m_state)
+    mission_form.addRow("Waypoint:", self.lbl_m_wp)
+    mission_form.addRow("Script:", self.lbl_m_script)
+
     layout.addStretch()
 
   def set_disconnected(self):
@@ -140,7 +151,7 @@ class TelemetryPanel(QFrame):
       self.lbl_estop.setText("--")
       self.lbl_estop.setStyleSheet("")
 
-  def update_mission_status(self, status: dict):
+def update_mission_status(self, status: dict):
     state_str = str(status.get("state", "idle"))
     self.lbl_m_state.setText(state_str)
 
@@ -151,6 +162,12 @@ class TelemetryPanel(QFrame):
       self.lbl_m_wp.setText(f"{wp_id} ({idx + 1}/{total})")
     else:
       self.lbl_m_wp.setText("--")
+
+    script = status.get("measurement_script")
+    if isinstance(script, dict):
+      self.lbl_m_script.setText(f"{script.get('name', '--')} ({script.get('id', '--')})")
+    else:
+      self.lbl_m_script.setText("--")
 
     err = status.get("error_message")
     self.lbl_m_err.setText(f"Error: {err}" if err else "")

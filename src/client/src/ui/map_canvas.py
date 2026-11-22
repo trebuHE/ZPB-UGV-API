@@ -245,3 +245,8 @@ class MapCanvas(QGraphicsView):
     u, v = self._map_data.world_to_pixel(x_w, y_w)
     self._robot_item.show()
     self._robot_item.update_pose(QPointF(u, v), yaw)
+
+  def update_waypoint(self, index: int, updated_wp: Waypoint):
+    if 0 <= index < len(self._waypoints):
+      self._waypoints[index] = updated_wp
+      self._waypoint_items[index].waypoint = updated_wp
