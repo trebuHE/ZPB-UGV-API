@@ -1,6 +1,7 @@
 from dataclasses import replace
 import json
 from pathlib import Path
+import sys
 from typing import List
 from PySide6.QtCore import QPointF, QRectF, QSize, Qt, QTimer, QUrl, Signal
 from PySide6.QtGui import QBrush, QColor, QIcon, QPainter, QPen, QPixmap, QPolygonF
@@ -48,11 +49,11 @@ class MissionPlannerView(QWidget):
 
     self._mission_uploaded = False
     self._mission_state = "idle"
-    self._current_waypoint_id: str | None = None
     self._api_busy = False
 
     self._state_pending = False
     self._mission_pending = False
+    self._last_poll_error: str | None = None
 
     self._setup_ui()
     self._setup_polling()
@@ -310,8 +311,8 @@ class MissionPlannerView(QWidget):
       try:
         self._measurement_defs = MeasurementParser.load_from_file(default_path)
         self.btn_load_meas.setText(f"Measurements ({len(self._measurement_defs)})")
-      except Exception:
-        pass
+      except Exception as e:
+        print(f"Failed to autoload measurement_definitions.yaml: {e}", file=sys.stderr)
 
   def _on_load_measurements(self):
     file_path, _ = QFileDialog.getOpenFileName(
@@ -346,12 +347,18 @@ class MissionPlannerView(QWidget):
     self.btn_wp_wait.setChecked(True)
     self.canvas.set_waypoint_wait(True)
     self.table.setRowCount(0)
+    self._state_pending = False
+    self._mission_pending = False
+    self._mission_state = "idle"
     self._invalidate_upload()
     self.telemetry_timer.start()
+    self._poll_backend()
     self._on_fit_view()
 
   def _on_back(self):
     self.telemetry_timer.stop()
+    self._state_pending = False
+    self._mission_pending = False
     self.back_requested.emit()
 
   def _on_fit_view(self):
@@ -476,7 +483,9 @@ class MissionPlannerView(QWidget):
 
   def _on_stop_success(self, result: dict):
     self._api_busy = False
-    if not result.get("success", False):
+    if result.get("success", False):
+      self._mission_state = "cancelled"
+    else:
       QMessageBox.warning(self, "Stop Rejected", result.get("message", "Could not stop mission."))
     self._update_control_buttons()
 
@@ -484,7 +493,6 @@ class MissionPlannerView(QWidget):
     self._run_api_call(
         self.api_client.continue_mission,
         self._on_continue_success,
-        self._current_waypoint_id,
     )
 
   def _on_continue_success(self, result: dict):
@@ -502,39 +510,47 @@ class MissionPlannerView(QWidget):
   def _poll_backend(self):
     if not self._state_pending:
       self._state_pending = True
-      self.network_manager.get(QNetworkRequest(QUrl(f"{self.api_client.base_url}/state")))
+      req = QNetworkRequest(QUrl(f"{self.api_client.base_url}/state"))
+      req.setTransferTimeout(1500)
+      reply = self.network_manager.get(req)
+      reply.setProperty("endpoint", "state")
 
     if not self._mission_pending:
       self._mission_pending = True
-      self.network_manager.get(QNetworkRequest(QUrl(f"{self.api_client.base_url}/mission/status")))
+      req = QNetworkRequest(QUrl(f"{self.api_client.base_url}/mission/status"))
+      req.setTransferTimeout(1500)
+      reply = self.network_manager.get(req)
+      reply.setProperty("endpoint", "mission")
 
   def _on_network_reply(self, reply: QNetworkReply):
-    path = reply.url().path()
-    is_state = path.endswith("/state")
-    is_mission = path.endswith("/mission/status")
-
-    if is_state:
+    endpoint = reply.property("endpoint")
+    if endpoint == "state":
       self._state_pending = False
-    elif is_mission:
+    elif endpoint == "mission":
       self._mission_pending = False
 
-    if reply.error() == QNetworkReply.NetworkError.NoError:
-      try:
+    try:
+      if reply.error() == QNetworkReply.NetworkError.NoError:
+        self._last_poll_error = None
         payload = json.loads(reply.readAll().data().decode("utf-8"))
-        if is_state:
+
+        if endpoint == "state":
           self.telemetry_panel.update_robot_state(payload)
           pose = payload.get("pose")
           if pose:
             self.canvas.update_robot_pose(pose["x"], pose["y"], pose["yaw"])
-        elif is_mission:
-          self.telemetry_panel.update_mission_status(payload)
-          self._mission_state = str(payload.get("state", "idle"))
-          self._current_waypoint_id = payload.get("current_waypoint_id")
-          self._update_control_buttons()
-      except Exception:
-        pass
-    else:
-      if is_state:
-        self.telemetry_panel.set_disconnected()
 
-    reply.deleteLater()
+        elif endpoint == "mission":
+          self._mission_state = str(payload.get("state", "idle")).strip().lower()
+          self._update_control_buttons()
+          self.telemetry_panel.update_mission_status(payload)
+      else:
+        if endpoint == "state":
+          self.telemetry_panel.set_disconnected()
+    except Exception as e:
+      err_str = f"[{endpoint}] {e}"
+      if err_str != self._last_poll_error:
+        print(f"Telemetry poll error: {err_str}", file=sys.stderr)
+        self._last_poll_error = err_str
+    finally:
+      reply.deleteLater()
