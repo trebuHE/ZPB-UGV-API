@@ -13,6 +13,7 @@ This document provides a comprehensive reference for the FastAPI endpoints, Pyda
 | `/e-stop/reset` | `POST` | None | [`CommandResult`](#commandresult) | Triggers the E-Stop reset service on the UGV hardware interface. |
 | `/mission/upload` | `POST` | `multipart/form-data` (`file`: `.yaml` / `.yml`) | [`CommandResult`](#commandresult) | Uploads and parses a mission YAML file into the bridge. |
 | `/mission/start` | `POST` | None | [`CommandResult`](#commandresult) | Validates Nav2 & SLAM readiness, checks E-stop status, and initiates loaded mission execution in a background worker thread. |
+| `/mission/stop` | `POST` | None | [`CommandResult`](#commandresult) | Cancels the running mission (state transitions to `CANCELLED`) and requests cancellation of the active Nav2 `NavigateToPose` goal. |
 | `/mission/status` | `GET` | None | [`MissionStatus`](#missionstatus) | Returns current runtime execution state and progress of the active mission (including measurement script details when `WAITING_AT_WAYPOINT`). |
 | `/mission/continue` | `POST` | Query param `waypoint_id` (optional) | [`CommandResult`](#commandresult) | Signals the mission sequencer to resume navigation from `WAITING_AT_WAYPOINT` to the next waypoint. |
 
