@@ -23,6 +23,21 @@ system, e.g., ROS2/ArduPilot.
 
 This repo has submodules, to clone the repo with all submodules use `git clone --recurse-submodules`.
 
+## Quick start
+
+Requires Docker with Compose, [`just`](https://github.com/casey/just), Python 3 with `venv`, and an X session for Gazebo. Configure the GPU in [`src/panther-autonomy-pkg/compose.simulation.yaml` (./src/panther-autonomy-pkg/compose.simulation.yaml) as described in its [README](./src/panther-autonomy-pkg/README.md).
+
+From the repository root, start everything with a single command:
+
+```bash
+just start-all
+```
+
+This starts the Husarion simulation (`just start-simulation`), the API container (`compose.api-sim.yaml`), and the GUI client (`src/client/main.py`). The client's virtual environment is created automatically on first run.
+
+Closing the client or the API and simulation containers. To leave them running, use `KEEP=1 just start-all`; stop them later with `just stop-all`.
+
 ## Authors
+
 - [Hubert Mucha](https://github.com/trebuHE)
 - [Adrian Czekański](https://github.com/401adii)
