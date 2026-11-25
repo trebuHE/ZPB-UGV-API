@@ -38,6 +38,7 @@ For a detailed specification of FastAPI endpoints, Pydantic data models, and the
   4. The payload computer executes its local measurement routines independently using the provided parameters.
   5. When finished, the payload computer calls `POST /mission/continue`.
   6. Bridge acknowledges the readiness signal, sets `MissionStatus.state` back to `RUNNING` (clearing active `measurement_script`), and proceeds to waypoint $N+1$.
+- **Pause / Resume:** `POST /mission/pause` stops the UGV and transitions the mission to `PAUSED` while retaining the loaded mission and current waypoint. If paused during navigation, `POST /mission/continue` retries the interrupted waypoint; if paused or waiting at a waypoint, it proceeds to waypoint $N+1$. `POST /mission/stop` cancels the mission from any of these active states.
 - **Fault Tolerance:** Each waypoint can specify an optional `wait_timeout_sec`. If the payload computer fails to report readiness within this window, the mission can safely abort or transition to `FAILED`.
 
 ### Open questions (TBD)

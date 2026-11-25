@@ -14,8 +14,9 @@ This document provides a comprehensive reference for the FastAPI endpoints, Pyda
 | `/mission/upload` | `POST` | `multipart/form-data` (`file`: `.yaml` / `.yml`) | [`CommandResult`](#commandresult) | Uploads and parses a mission YAML file into the bridge. |
 | `/mission/start` | `POST` | None | [`CommandResult`](#commandresult) | Validates Nav2 & SLAM readiness, checks E-stop status, and initiates loaded mission execution in a background worker thread. |
 | `/mission/stop` | `POST` | None | [`CommandResult`](#commandresult) | Cancels the running mission (state transitions to `CANCELLED`) and requests cancellation of the active Nav2 `NavigateToPose` goal. |
+| `/mission/pause` | `POST` | None | [`CommandResult`](#commandresult) | Pauses the running mission (state transitions to `PAUSED`), stopping the UGV by cancelling the active Nav2 goal while retaining the mission in memory. Pausing while `WAITING_AT_WAYPOINT` keeps the measurement script available. |
 | `/mission/status` | `GET` | None | [`MissionStatus`](#missionstatus) | Returns current runtime execution state and progress of the active mission (including measurement script details when `WAITING_AT_WAYPOINT`). |
-| `/mission/continue` | `POST` | Query param `waypoint_id` (optional) | [`CommandResult`](#commandresult) | Signals the mission sequencer to resume navigation from `WAITING_AT_WAYPOINT` to the next waypoint. |
+| `/mission/continue` | `POST` | Query param `waypoint_id` (optional) | [`CommandResult`](#commandresult) | Resumes a `PAUSED` mission or advances from `WAITING_AT_WAYPOINT`. When paused mid-navigation, the sequencer retries the interrupted waypoint; when paused or waiting at a waypoint, it proceeds to the next waypoint. |
 
 
 ## 2. Pydantic Models ([`src/ugv-api/api/models.py`](/src/ugv-api/api/models.py))
@@ -60,6 +61,7 @@ This document provides a comprehensive reference for the FastAPI endpoints, Pyda
 - `IDLE` (`"idle"`)
 - `RUNNING` (`"running"`)
 - `WAITING_AT_WAYPOINT` (`"waiting_at_waypoint"`)
+- `PAUSED` (`"paused"`)
 - `COMPLETED` (`"completed"`)
 - `FAILED` (`"failed"`)
 - `CANCELLED` (`"cancelled"`)
@@ -70,7 +72,7 @@ This document provides a comprehensive reference for the FastAPI endpoints, Pyda
 - `current_waypoint_index`: `int` - Index of the waypoint currently being targeted.
 - `total_waypoints`: `int` - Total count of waypoints in the mission.
 - `current_waypoint_id`: `str` | `None` - ID of the waypoint currently being targeted.
-- `measurement_script`: [`MeasurementScript`](#measurementscript) | `None` - Measurement script assigned to the current waypoint when `state` is `WAITING_AT_WAYPOINT` (otherwise `None`).
+- `measurement_script`: [`MeasurementScript`](#measurementscript) | `None` - Measurement script assigned to the current waypoint when `state` is `WAITING_AT_WAYPOINT` or when the mission was paused at a waiting waypoint (otherwise `None`).
 - `error_message`: `str` | `None` - Error message if the mission failed.
 
 ### `CommandResult`
