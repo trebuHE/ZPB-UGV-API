@@ -32,10 +32,14 @@ class NavigationManager:
   def wait_for_server(self, timeout_sec: float = 2.0) -> bool:
     return self._nav_action_client.wait_for_server(timeout_sec=timeout_sec)
 
-  def navigate_to_waypoint(self, wp: Waypoint) -> bool:
+  def get_cancel_generation(self) -> int:
+    with self._goal_lock:
+      return self._cancel_generation
+
+  def navigate_to_waypoint(self, wp: Waypoint, cancel_generation: int | None = None) -> bool:
     """Sends a single waypoint to Nav2 NavigateToPose action and waits for result."""
     with self._goal_lock:
-      generation = self._cancel_generation
+      generation = self._cancel_generation if cancel_generation is None else cancel_generation
 
     goal_msg = NavigateToPose.Goal()
     goal_msg.pose = PoseStamped()
