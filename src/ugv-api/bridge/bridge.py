@@ -60,6 +60,9 @@ class Bridge:
   def stop_mission(self) -> CommandResult:
     return self.mission.stop()
 
+  def pause_mission(self) -> CommandResult:
+    return self.mission.pause()
+
   def get_mission_status(self) -> MissionStatus:
     return self.mission.get_status()
 
