@@ -7,6 +7,7 @@ from api.models import CommandResult, MissionStatus, RobotState
 from rclpy.node import Node
 
 from bridge.hardware import HardwareManager
+from bridge.map import MapManager
 from bridge.mission import MissionManager
 from bridge.navigation import NavigationManager
 from bridge.telemetry import TelemetryManager
@@ -27,6 +28,7 @@ class Bridge:
     self.hardware = HardwareManager(self._node, ns)
     self.navigation = NavigationManager(self._node, ns)
     self.mission = MissionManager(self._node, self.navigation, self.hardware, self.telemetry)
+    self.map = MapManager(self._node, ns)
 
     self._thread = threading.Thread(
       target=rclpy.spin, args=(self._node,), daemon=True
@@ -49,7 +51,30 @@ class Bridge:
     return self.hardware.is_slam_active(timeout_sec)
 
   def load_mission(self, content: str) -> CommandResult:
+    if not self.map.is_ready():
+      return CommandResult(
+        success=False,
+        message=(
+          "Cannot upload mission. Nav2 map_server is unavailable;"
+          " navigation must run in localization mode (SLAM=False)."
+        ),
+      )
+
     return self.mission.load(content)
+
+  def upload_map(
+    self,
+    yaml_content: bytes,
+    image_content: bytes,
+    image_filename: str,
+  ) -> CommandResult:
+    if self.mission.is_active:
+      return CommandResult(
+        success=False,
+        message="Cannot upload map while a mission is active. Stop the mission first.",
+      )
+
+    return self.map.upload(yaml_content, image_content, image_filename)
 
   def start_mission(self) -> CommandResult:
     if not self.mission.is_mission_loaded:

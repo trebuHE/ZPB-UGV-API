@@ -36,6 +36,21 @@ def start_mission():
   return BRIDGE.start_mission()
 
 
+@app.post("/map/upload", response_model=CommandResult)
+async def map_upload(
+    yaml_file: UploadFile = File(...),  # noqa: B008
+    image_file: UploadFile = File(...),  # noqa: B008
+):
+
+  if not (yaml_file.filename or "").endswith(('.yaml', '.yml')):
+    raise HTTPException(status_code=400, detail="Invalid map YAML file type.")
+
+  yaml_content = await yaml_file.read()
+  image_content = await image_file.read()
+
+  return BRIDGE.upload_map(yaml_content, image_content, image_file.filename or "")
+
+
 @app.post("/mission/stop", response_model=CommandResult)
 def stop_mission():
   return BRIDGE.stop_mission()

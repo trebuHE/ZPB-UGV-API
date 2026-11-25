@@ -168,7 +168,7 @@ class MapManager:
 
       event = threading.Event()
       future = client.call_async(ClearEntireCostmap.Request())
-      future.add_done_callback(lambda _: event.set())
+      future.add_done_callback(lambda _: event.set())  # noqa: B023
 
       if not event.wait(timeout=CLEAR_COSTMAP_TIMEOUT_SEC):
         future.cancel()
