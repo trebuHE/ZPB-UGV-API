@@ -1,0 +1,32 @@
+name: sample_mission
+
+waypoints:
+  - id: "start"
+    x: 0.0
+    y: 0.0
+    yaw: 0.0
+    wait: false
+
+  - id: "target_1"
+    x: 4.0
+    y: 0.0
+    yaw: 0.0
+    wait: true
+    measurement_script:
+      id: "scan_01"
+      name: "spectral_measurement"
+      parameters:
+        duration_s: 5
+        sample_rate_hz: 10
+  
+  - id: "target_2"
+    x: 4.0
+    y: -4.0
+    yaw: 0.0
+    wait: true
+  
+  - id: "end"
+    x: 0.0
+    y: 0.0
+    yaw: 0.0
+    wait: false

@@ -1,0 +1,76 @@
+measurements:
+  - id: "spec_1"
+    name: "spectral analysis"
+    parameters:
+      duration_s:
+        min: 1
+        value: 5
+        max: 30
+      band_MHz:
+        min: 100
+        value: 500
+        max: 5000
+
+  - id: "sweep_1"
+    name: "wideband frequency sweep"
+    parameters:
+      start_freq_MHz:
+        min: 70
+        value: 400
+        max: 6000
+      stop_freq_MHz:
+        min: 100
+        value: 2400
+        max: 6000
+      rbw_kHz:
+        min: 10
+        value: 100
+        max: 1000
+
+  - id: "iq_1"
+    name: "raw iq capture"
+    parameters:
+      center_freq_MHz:
+        min: 400
+        value: 868
+        max: 5800
+      sample_rate_MSps:
+        min: 1
+        value: 10
+        max: 50
+      duration_s:
+        min: 1
+        value: 2
+        max: 15
+      gain_dB:
+        min: 0
+        value: 20
+        max: 45
+
+  - id: "rssi_1"
+    name: "signal strength monitoring"
+    parameters:
+      center_freq_MHz:
+        min: 800
+        value: 2412
+        max: 5900
+      interval_ms:
+        min: 100
+        value: 500
+        max: 5000
+      samples_count:
+        min: 1
+        value: 20
+        max: 200
+
+  - id: "noise_1"
+    name: "noise floor measurement"
+    parameters:
+      center_freq_MHz:
+        min: 100
+        value: 915
+        max: 3000
+      integration_time_ms:
+        min: 50
+        value: 250
+        max: 2000

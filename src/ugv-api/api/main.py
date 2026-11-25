@@ -36,6 +36,11 @@ def start_mission():
   return BRIDGE.start_mission()
 
 
+@app.post("/mission/stop", response_model=CommandResult)
+def stop_mission():
+  return BRIDGE.stop_mission()
+
+
 @app.get("/health")
 def health():
   return {"status": "ok"}

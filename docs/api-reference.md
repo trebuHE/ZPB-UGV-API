@@ -13,7 +13,8 @@ This document provides a comprehensive reference for the FastAPI endpoints, Pyda
 | `/e-stop/reset` | `POST` | None | [`CommandResult`](#commandresult) | Triggers the E-Stop reset service on the UGV hardware interface. |
 | `/mission/upload` | `POST` | `multipart/form-data` (`file`: `.yaml` / `.yml`) | [`CommandResult`](#commandresult) | Uploads and parses a mission YAML file into the bridge. |
 | `/mission/start` | `POST` | None | [`CommandResult`](#commandresult) | Validates Nav2 & SLAM readiness, checks E-stop status, and initiates loaded mission execution in a background worker thread. |
-| `/mission/status` | `GET` | None | [`MissionStatus`](#missionstatus) | Returns current runtime execution state and progress of the active mission. |
+| `/mission/stop` | `POST` | None | [`CommandResult`](#commandresult) | Cancels the running mission (state transitions to `CANCELLED`) and requests cancellation of the active Nav2 `NavigateToPose` goal. |
+| `/mission/status` | `GET` | None | [`MissionStatus`](#missionstatus) | Returns current runtime execution state and progress of the active mission (including measurement script details when `WAITING_AT_WAYPOINT`). |
 | `/mission/continue` | `POST` | Query param `waypoint_id` (optional) | [`CommandResult`](#commandresult) | Signals the mission sequencer to resume navigation from `WAITING_AT_WAYPOINT` to the next waypoint. |
 
 
@@ -38,12 +39,18 @@ This document provides a comprehensive reference for the FastAPI endpoints, Pyda
 - `battery`: [`BatteryData`](#batterydata) | `None` - Battery status readings.
 - `e_stop`: `bool` | `None` - Emergency stop active status.
 
+### `MeasurementScript`
+- `id`: `str` - Unique identifier for the measurement script.
+- `name`: `str` - Human-readable name or execution routine of the measurement script.
+- `parameters`: `dict[str, Any]` - Key-value parameters passed to the measurement script (default: `{}`).
+
 ### `Waypoint`
 - `id`: `str` - Unique waypoint identifier.
 - `x`: `float` - Target X coordinate in meters (positive ahead direction).
 - `y`: `float` - Target Y coordinate in meters (positive left direction).
 - `yaw`: `float` - Target angle in radians (default: `0.0`).
 - `wait`: `bool` - Whether the robot stops and awaits a continue command (default: `true`).
+- `measurement_script`: [`MeasurementScript`](#measurementscript) | `None` - Optional measurement script assigned to this waypoint (default: `None`).
 
 ### `MissionDefinition`
 - `name`: `str` - Mission name (minimum length: 1).
@@ -63,12 +70,12 @@ This document provides a comprehensive reference for the FastAPI endpoints, Pyda
 - `current_waypoint_index`: `int` - Index of the waypoint currently being targeted.
 - `total_waypoints`: `int` - Total count of waypoints in the mission.
 - `current_waypoint_id`: `str` | `None` - ID of the waypoint currently being targeted.
+- `measurement_script`: [`MeasurementScript`](#measurementscript) | `None` - Measurement script assigned to the current waypoint when `state` is `WAITING_AT_WAYPOINT` (otherwise `None`).
 - `error_message`: `str` | `None` - Error message if the mission failed.
 
 ### `CommandResult`
 - `success`: `bool` - Indicates if the operation succeeded.
 - `message`: `str` - Descriptive message or error details.
-
 
 ## 3. ROS 2 Bridge Interface ([`src/ugv-api/bridge/`](/src/ugv-api/bridge/))
 

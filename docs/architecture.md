@@ -30,13 +30,14 @@ For a detailed specification of FastAPI endpoints, Pydantic data models, and the
 
 - A mission is uploaded via HTTP as a YAML file (`/mission/upload`), parsed and validated against Pydantic models in the bridge.
 - Mission sequencing (drive → wait → next waypoint) is handled by the **bridge** via Nav2 `NavigateToPose` actions, with runtime status tracked via `/mission/status`.
+- **Waypoint Measurement Scripts:** Every waypoint in a `MissionDefinition` can optionally specify a measurement script (`measurement_script`) with an `id`, `name`, and arbitrary `parameters` (as a key-value mapping).
 - Handshake Protocol at Waypoints:
   1. Bridge drives the robot to waypoint $N$.
-  2. Upon arrival, the robot stops, and `MissionStatus.state` transitions to `WAITING_AT_WAYPOINT` (with `current_waypoint_id` set to $N$).
-  3. The external script on the payload computer detects arrival (via polling `GET /mission/status` or WebSocket events).
-  4. The payload computer executes its local measurement routines independently.
+  2. Upon arrival, the robot stops, and `MissionStatus.state` transitions to `WAITING_AT_WAYPOINT` (with `current_waypoint_id` set to $N$, and `measurement_script` populated with the script id, name, and parameters defined for waypoint $N$, if assigned).
+  3. The external script / runner on the payload computer detects arrival (via polling `GET /mission/status`) and retrieves the assigned measurement script configuration.
+  4. The payload computer executes its local measurement routines independently using the provided parameters.
   5. When finished, the payload computer calls `POST /mission/continue`.
-  6. Bridge acknowledges the readiness signal, sets `MissionStatus.state` back to `RUNNING`, and proceeds to waypoint $N+1$.
+  6. Bridge acknowledges the readiness signal, sets `MissionStatus.state` back to `RUNNING` (clearing active `measurement_script`), and proceeds to waypoint $N+1$.
 - **Fault Tolerance:** Each waypoint can specify an optional `wait_timeout_sec`. If the payload computer fails to report readiness within this window, the mission can safely abort or transition to `FAILED`.
 
 ### Open questions (TBD)

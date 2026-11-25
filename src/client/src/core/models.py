@@ -1,6 +1,32 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List, Tuple
+from typing import Dict, Optional, Tuple, Union
+
+ParamValue = Union[int, float]
+
+
+@dataclass(frozen=True)
+class ParameterSpec:
+  name: str
+  min_val: ParamValue
+  default_val: ParamValue
+  max_val: ParamValue
+  is_int: bool = True
+
+
+@dataclass(frozen=True)
+class MeasurementDefinition:
+  id: str
+  name: str
+  parameters: Dict[str, ParameterSpec] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class MeasurementConfig:
+  id: str
+  name: str
+  parameters: Dict[str, ParamValue] = field(default_factory=dict)
+
 
 @dataclass(frozen=True)
 class Waypoint:
@@ -8,6 +34,8 @@ class Waypoint:
   x: float  # World X in meters
   y: float  # World Y in meters
   yaw: float  # Heading in radians (-pi to pi)
+  wait: bool = True  # True = wait for continue, False = transit immediately
+  measurement_script: Optional[MeasurementConfig] = None
 
 
 @dataclass(frozen=True)
