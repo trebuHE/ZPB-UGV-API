@@ -26,62 +26,127 @@ class MissionManager:
     self._mission_lock = threading.Lock()
     self._mission_thread: threading.Thread | None = None
     self._continue_event = threading.Event()
+    self._pause_resume_event = threading.Event()
+    self._paused_while_waiting = False
     self._run_id = 0
+
+  def _wait_for_resume(self, run_id: int) -> bool:
+    while True:
+      with self._mission_lock:
+        if run_id != self._run_id:
+          return False
+        if self._status.state == MissionState.CANCELLED:
+          return False
+        if self._status.state != MissionState.PAUSED:
+          return True
+      self._pause_resume_event.wait()
+      self._pause_resume_event.clear()
 
   def _run_mission_sequence(self, mission: MissionDefinition, run_id: int):
     logger = self._node.get_logger()
     log_info(f"Starting mission sequence: {mission.name}", logger=logger)
     try:
       for index, wp in enumerate(mission.waypoints):
-        with self._mission_lock:
-          if run_id != self._run_id:
-            return
-          if self._status.state == MissionState.CANCELLED:
-            log_info(f"Mission {mission.name} cancelled before waypoint {wp.id}", logger=logger)
-            return
-          self._status.current_waypoint_id = wp.id
-          self._status.current_waypoint_index = index
-          self._status.measurement_script = None
-
-        log_info(f"Navigating to waypoint {wp.id} (x={wp.x}, y={wp.y})", logger=logger)
-        success = self._navigation.navigate_to_waypoint(wp)
-
-        if not success:
+        while True:
           with self._mission_lock:
             if run_id != self._run_id:
               return
             if self._status.state == MissionState.CANCELLED:
+              log_info(f"Mission {mission.name} cancelled before waypoint {wp.id}", logger=logger)
+              return
+            paused = self._status.state == MissionState.PAUSED
+            if not paused:
+              self._status.current_waypoint_id = wp.id
+              self._status.current_waypoint_index = index
+              self._status.measurement_script = None
+
+          if paused:
+            log_info(f"Mission {mission.name} is paused before waypoint {wp.id}", logger=logger)
+            if not self._wait_for_resume(run_id):
+              return
+            log_info(f"Resuming mission towards waypoint {wp.id}...", logger=logger)
+            continue
+
+          cancel_generation = self._navigation.get_cancel_generation()
+
+          with self._mission_lock:
+            if run_id != self._run_id:
+              return
+            if self._status.state == MissionState.CANCELLED:
+              log_info(f"Mission {mission.name} cancelled before waypoint {wp.id}", logger=logger)
+              return
+            paused = self._status.state == MissionState.PAUSED
+          if paused:
+            continue
+
+          log_info(f"Navigating to waypoint {wp.id} (x={wp.x}, y={wp.y})", logger=logger)
+          success = self._navigation.navigate_to_waypoint(wp, cancel_generation)
+
+          if success:
+            break
+
+          with self._mission_lock:
+            if run_id != self._run_id:
+              return
+            state = self._status.state
+            if state == MissionState.CANCELLED:
               log_info(f"Mission {mission.name} cancelled while navigating to waypoint {wp.id}", logger=logger)
               return
-            self._status.state = MissionState.FAILED
-            self._status.error_message = f"Failed to reach waypoint {wp.id}"
-            self._status.measurement_script = None
-          log_error(f"Failed to reach waypoint {wp.id}", logger=logger)
-          return
+            generation_changed = cancel_generation != self._navigation.get_cancel_generation()
+            if state != MissionState.PAUSED and not generation_changed:
+              self._status.state = MissionState.FAILED
+              self._status.error_message = f"Failed to reach waypoint {wp.id}"
+              self._status.measurement_script = None
+              failed = True
+            else:
+              failed = False
+
+          if failed:
+            log_error(f"Failed to reach waypoint {wp.id}", logger=logger)
+            return
+
+          if state == MissionState.PAUSED:
+            log_info(f"Mission {mission.name} paused while navigating to waypoint {wp.id}", logger=logger)
+            if not self._wait_for_resume(run_id):
+              return
+          log_info(f"Resuming mission towards waypoint {wp.id}...", logger=logger)
 
         if wp.wait:
-          with self._mission_lock:
-            if run_id != self._run_id:
-              return
-            if self._status.state == MissionState.CANCELLED:
-              log_info(f"Mission {mission.name} cancelled at waypoint {wp.id}", logger=logger)
-              return
-            self._continue_event.clear()
-            self._status.state = MissionState.WAITING_AT_WAYPOINT
-            self._status.measurement_script = wp.measurement_script
-
-          log_info(f"Reached waypoint {wp.id}. Waiting for continue command...", logger=logger)
-          self._continue_event.wait()
-
-          with self._mission_lock:
-            if run_id != self._run_id:
-              return
-            if self._status.state != MissionState.WAITING_AT_WAYPOINT:
+          resumed = False
+          while not resumed:
+            with self._mission_lock:
+              if run_id != self._run_id:
+                return
               if self._status.state == MissionState.CANCELLED:
                 log_info(f"Mission {mission.name} cancelled at waypoint {wp.id}", logger=logger)
-              return
-            self._status.state = MissionState.RUNNING
-            self._status.measurement_script = None
+                return
+              self._continue_event.clear()
+              if self._status.state == MissionState.PAUSED:
+                self._paused_while_waiting = True
+              else:
+                self._paused_while_waiting = False
+                self._status.state = MissionState.WAITING_AT_WAYPOINT
+              self._status.measurement_script = wp.measurement_script
+              paused = self._paused_while_waiting
+
+            if paused:
+              log_info(f"Reached waypoint {wp.id} while paused. Waiting for continue command...", logger=logger)
+            else:
+              log_info(f"Reached waypoint {wp.id}. Waiting for continue command...", logger=logger)
+            self._continue_event.wait()
+
+            with self._mission_lock:
+              if run_id != self._run_id:
+                return
+              if self._status.state == MissionState.CANCELLED:
+                log_info(f"Mission {mission.name} cancelled at waypoint {wp.id}", logger=logger)
+                return
+              if self._status.state == MissionState.PAUSED:
+                continue
+              self._paused_while_waiting = False
+              self._status.state = MissionState.RUNNING
+              self._status.measurement_script = None
+              resumed = True
 
           log_info(f"Continuing mission from waypoint {wp.id}...", logger=logger)
         else:
@@ -95,6 +160,7 @@ class MissionManager:
           return
         self._status.state = MissionState.COMPLETED
         self._status.measurement_script = None
+        self._paused_while_waiting = False
       log_info(f"Mission {mission.name} completed successfully", logger=logger)
 
     except Exception as e:  # noqa: BLE001
@@ -107,6 +173,7 @@ class MissionManager:
         self._status.state = MissionState.FAILED
         self._status.error_message = f"Unexpected execution error: {e}"
         self._status.measurement_script = None
+        self._paused_while_waiting = False
       log_error(f"Mission crashed: {e}", logger=logger)
 
   def load(self, content: str) -> CommandResult:
@@ -135,7 +202,7 @@ class MissionManager:
       if mission is None:
         mission = self._loaded_mission_definition
 
-      if self._status.state in (MissionState.RUNNING, MissionState.WAITING_AT_WAYPOINT):
+      if self._status.state in (MissionState.RUNNING, MissionState.WAITING_AT_WAYPOINT, MissionState.PAUSED):
         return log_warn("Cannot start mission! One is already in progress.", logger=logger)
 
       nav_status = self._hardware.is_navigation_active()
@@ -154,6 +221,9 @@ class MissionManager:
 
       self._run_id += 1
       run_id = self._run_id
+      self._pause_resume_event.clear()
+      self._continue_event.clear()
+      self._paused_while_waiting = False
       self._status = MissionStatus(
         state=MissionState.RUNNING,
         mission_name=mission.name,
@@ -171,12 +241,33 @@ class MissionManager:
 
     return log_info(f"Mission {mission.name} accepted and started in a mission thread", logger=logger)
 
+  def pause(self) -> CommandResult:
+    logger = self._node.get_logger()
+    with self._mission_lock:
+      if self._status.state not in (MissionState.RUNNING, MissionState.WAITING_AT_WAYPOINT):
+        return log_warn(
+          f"Cannot pause mission. No mission is running (current state: {self._status.state.value}).",
+          logger=logger,
+        )
+
+      paused_while_waiting = self._status.state == MissionState.WAITING_AT_WAYPOINT
+      self._pause_resume_event.clear()
+      self._paused_while_waiting = paused_while_waiting
+      self._status.state = MissionState.PAUSED
+      waypoint_id = self._status.current_waypoint_id
+
+    if not paused_while_waiting:
+      self._navigation.cancel_current_goal()
+
+    return log_info(f"Mission paused at waypoint '{waypoint_id}'.", logger=logger)
+
   def continue_mission(self, waypoint_id: str | None = None) -> CommandResult:
     logger = self._node.get_logger()
     with self._mission_lock:
-      if self._status.state != MissionState.WAITING_AT_WAYPOINT:
+      state = self._status.state
+      if state not in (MissionState.WAITING_AT_WAYPOINT, MissionState.PAUSED):
         return log_warn(
-          f"Cannot continue mission. Robot is not waiting at a waypoint (current state: {self._status.state.value}).",
+          f"Cannot continue mission. Robot is not waiting or paused (current state: {state.value}).",
           logger=logger,
         )
 
@@ -186,7 +277,15 @@ class MissionManager:
           logger=logger,
         )
 
-      self._continue_event.set()
+      if state == MissionState.PAUSED:
+        self._status.state = MissionState.RUNNING
+        if self._paused_while_waiting:
+          self._continue_event.set()
+        else:
+          self._pause_resume_event.set()
+      else:
+        self._continue_event.set()
+
       return log_info(
         f"Continuing mission from waypoint '{self._status.current_waypoint_id}'.",
         logger=logger,
@@ -195,7 +294,7 @@ class MissionManager:
   def stop(self) -> CommandResult:
     logger = self._node.get_logger()
     with self._mission_lock:
-      if self._status.state not in (MissionState.RUNNING, MissionState.WAITING_AT_WAYPOINT):
+      if self._status.state not in (MissionState.RUNNING, MissionState.WAITING_AT_WAYPOINT, MissionState.PAUSED):
         return log_warn(
           f"Cannot stop mission. No mission is running (current state: {self._status.state.value}).",
           logger=logger,
@@ -203,9 +302,11 @@ class MissionManager:
 
       self._status.state = MissionState.CANCELLED
       self._status.measurement_script = None
+      self._paused_while_waiting = False
       thread = self._mission_thread
 
     self._continue_event.set()
+    self._pause_resume_event.set()
     self._navigation.cancel_current_goal()
 
     if thread is not None and thread.is_alive() and thread is not threading.current_thread():
