@@ -11,6 +11,7 @@ services and actions.
 - Exposes the robot state and mission control over HTTP (FastAPI).
 - Translates API commands into ROS 2 actions/services via the internal bridge
   (rclpy node in the same process).
+- Accepts map YAML/image uploads and loads them into the Nav2 `map_server`.
 - Runs external measurement scripts at mission waypoints (planned).
 
 ## Build and run
@@ -25,7 +26,14 @@ docker compose -f compose.api-sim.yaml up api
 ```
 
 The API container uses `network_mode: host` and the same CycloneDDS setup as
-the Husarion stack, so it discovers the robot's topics automatically.
+the Husarion stack, so it discovers the robot's topics automatically. It also
+mounts `../panther-autonomy-pkg/maps` at `/maps`, shared with the simulation
+navigation container.
+
+Simulation navigation runs in localization mode by default (`SLAM=False`) with
+`map_server` + AMCL, loading `/maps/map.yaml`. Set `SLAM=True` when starting
+the simulation to use SLAM mapping instead; map upload requires localization
+mode.
 
 ## Development
 
@@ -43,6 +51,14 @@ With the simulation running and the API container up:
 ```bash
 curl http://localhost:8000/health   # {"status": "ok"}
 curl http://localhost:8000/state    # current robot pose (x, y, yaw), battery and e-stop status
+```
+
+Upload a map to the running localization stack:
+
+```bash
+curl -X POST http://localhost:8000/map/upload \
+  -F yaml_file=@../client/map/map.yaml \
+  -F image_file=@../client/map/map.png
 ```
 
 Values in `/state` must change while the robot moves in Gazebo/RViz.

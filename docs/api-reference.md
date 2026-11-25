@@ -11,12 +11,20 @@ This document provides a comprehensive reference for the FastAPI endpoints, Pyda
 | `/health` | `GET` | None | `dict` (`{"status": "ok"}`) | Basic health check for the API sidecar container. |
 | `/state` | `GET` | None | [`RobotState`](#robotstate) | Returns the current cached state of the robot (pose, battery, e-stop). |
 | `/e-stop/reset` | `POST` | None | [`CommandResult`](#commandresult) | Triggers the E-Stop reset service on the UGV hardware interface. |
-| `/mission/upload` | `POST` | `multipart/form-data` (`file`: `.yaml` / `.yml`) | [`CommandResult`](#commandresult) | Uploads and parses a mission YAML file into the bridge. |
-| `/mission/start` | `POST` | None | [`CommandResult`](#commandresult) | Validates Nav2 & SLAM readiness, checks E-stop status, and initiates loaded mission execution in a background worker thread. |
+| `/mission/upload` | `POST` | `multipart/form-data` (`file`: `.yaml` / `.yml`) | [`CommandResult`](#commandresult) | Uploads and parses a mission YAML file into the bridge. Requires the Nav2 localization `map_server` to be available. |
+| `/mission/start` | `POST` | None | [`CommandResult`](#commandresult) | Validates Nav2 readiness, an active localization or SLAM lifecycle, and E-stop status, then initiates loaded mission execution in a background worker thread. |
 | `/mission/stop` | `POST` | None | [`CommandResult`](#commandresult) | Cancels the running mission (state transitions to `CANCELLED`) and requests cancellation of the active Nav2 `NavigateToPose` goal. |
 | `/mission/pause` | `POST` | None | [`CommandResult`](#commandresult) | Pauses the running mission (state transitions to `PAUSED`), stopping the UGV by cancelling the active Nav2 goal while retaining the mission in memory. Pausing while `WAITING_AT_WAYPOINT` keeps the measurement script available. |
 | `/mission/status` | `GET` | None | [`MissionStatus`](#missionstatus) | Returns current runtime execution state and progress of the active mission (including measurement script details when `WAITING_AT_WAYPOINT`). |
 | `/mission/continue` | `POST` | Query param `waypoint_id` (optional) | [`CommandResult`](#commandresult) | Resumes a `PAUSED` mission or advances from `WAITING_AT_WAYPOINT`. When paused mid-navigation, the sequencer retries the interrupted waypoint; when paused or waiting at a waypoint, it proceeds to the next waypoint. |
+| `/map/upload` | `POST` | `multipart/form-data` (`yaml_file`: `.yaml` / `.yml`, `image_file`: `.png` / `.pgm` / `.bmp`) | [`CommandResult`](#commandresult) | Validates a map YAML and image pair, stores them in the shared `/maps` directory, and loads the map into the Nav2 `map_server`. Rejected while a mission is active and unavailable when navigation runs in SLAM mode. |
+
+### Map upload
+- The map is written as `/maps/map.yaml` plus `/maps/map.<ext>`, replacing the active map files.
+- Upload is transactional: files are staged and loaded by `map_server` before replacing the previous active map. If loading fails, the old map remains active.
+- Global and local costmaps are cleared after a successful load.
+- The API container and navigation container must share the host maps directory (`../panther-autonomy-pkg/maps:/maps` for simulation).
+- Simulation navigation starts in localization mode by default (`SLAM=False`). Set `SLAM=True` to run SLAM mapping instead; map upload is not available in that mode.
 
 
 ## 2. Pydantic Models ([`src/ugv-api/api/models.py`](/src/ugv-api/api/models.py))
@@ -84,7 +92,8 @@ This document provides a comprehensive reference for the FastAPI endpoints, Pyda
 The `Bridge` class acts as a facade, owning the single `rclpy` node and background spin thread while delegating specific responsibilities to modular managers:
 
 - **[`TelemetryManager`](/src/ugv-api/bridge/telemetry.py)**: Subscribes to `/panther/odometry/filtered`, `/panther/battery/battery_status`, and `/panther/hardware/e_stop`, caching thread-safe state snapshots.
-- **[`HardwareManager`](/src/ugv-api/bridge/hardware.py)**: Manages service clients for E-stop triggers/resets and Nav2 / SLAM lifecycle manager activity probes.
+- **[`HardwareManager`](/src/ugv-api/bridge/hardware.py)**: Manages service clients for E-stop triggers/resets and Nav2 / localization / SLAM lifecycle manager activity probes.
 - **[`NavigationManager`](/src/ugv-api/bridge/navigation.py)**: Wraps the Nav2 `NavigateToPose` action client for waypoint traversal.
 - **[`MissionManager`](/src/ugv-api/bridge/mission.py)**: Manages mission YAML validation/loading, execution status tracking, and spawns background threads to sequence waypoint navigation.
+- **[`MapManager`](/src/ugv-api/bridge/map.py)**: Validates uploaded map YAML/image pairs, stores them in the shared maps directory, loads them through Nav2 `map_server/load_map`, and clears costmaps after activation.
 - **[`utils.py`](/src/ugv-api/bridge/utils.py)**: Provides quaternion-to-yaw math utilities, reusable QoS profiles, and logging/command response helpers (`log_info`, `log_warn`, `log_error`).

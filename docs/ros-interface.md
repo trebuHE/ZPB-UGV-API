@@ -51,7 +51,9 @@ ros2 interface show nav2_msgs/action/DriveOnHeading
 | `/panther/hardware/e_stop_trigger` | `std_srvs/srv/Trigger` | E-STOP activation|
 | `/panther/hardware/e_stop_reset` | `std_srvs/srv/Trigger` | E-STOP deactivation|
 | `/panther/lifecycle_manager_navigation/is_active` | `std_srvs/srv/Trigger` | Nav2 readiness check |
-| `/panther/lifecycle_manager_slam/is_active` | `std_srvs/srv/Trigger` | SLAM readiness check | 
+| `/panther/lifecycle_manager_localization/is_active` | `std_srvs/srv/Trigger` | Localization (`map_server` + AMCL) readiness check |
+| `/panther/lifecycle_manager_slam/is_active` | `std_srvs/srv/Trigger` | SLAM readiness check |
+| `/panther/map_server/load_map` | `nav2_msgs/srv/LoadMap` | Loads a map YAML/image pair at runtime |
 
 ### Commands used
 
@@ -66,3 +68,9 @@ ros2 service type /panther/hardware/e_stop_trigger
 2. Telemetry source: `/panther/odometry/filtered` (not `wheels`).
 3. Subscriber QoS must match the publisher's QoS, otherwise no data is
    received.
+4. Simulation navigation runs in localization mode by default (`slam:=False`),
+   which starts `map_server` and AMCL from `map:=/maps/map.yaml`. SLAM mode
+   (`slam:=True`) replaces the map server and is used for mapping.
+5. `/maps` is shared with the API container so `/map/upload` can stage and load
+   new maps. `map_server/load_map` receives a plain filesystem path
+   (`/maps/map.yaml`), not a `file://` URI.

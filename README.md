@@ -33,7 +33,7 @@ From the repository root, start everything with a single command:
 just start-all
 ```
 
-This starts the Husarion simulation (`just start-simulation`), the API container (`compose.api-sim.yaml`), and the GUI client (`src/client/main.py`). The client's virtual environment is created automatically on first run.
+This starts the Husarion simulation (`just start-simulation`), the API container (`compose.api-sim.yaml`), and the GUI client (`src/client/main.py`). The client's virtual environment is created automatically on first run. Simulation navigation starts in localization mode using the prebuilt map at `src/panther-autonomy-pkg/maps/map.yaml`; set `SLAM=True` to use SLAM mapping instead.
 
 Closing the client or the API and simulation containers. To leave them running, use `KEEP=1 just start-all`; stop them later with `just stop-all`.
 

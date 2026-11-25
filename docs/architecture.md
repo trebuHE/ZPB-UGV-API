@@ -21,6 +21,8 @@ Payload Computer     ──┘        ├─ FastAPI (REST / State endpoints)
 - **One new Docker image**, built on top of `ros:jazzy-ros-base`, run as a sidecar: `network_mode: host`, `ipc: host`, and the same CycloneDDS environment as the Husarion stack.
 - **One process, two execution models**: The ROS 2 node runs in its own background thread (`rclpy.spin`), while FastAPI runs on the main `asyncio` event loop. Thread-safe synchronization events and locks isolate ROS callbacks from HTTP handlers.
 - The **Bridge** encapsulates all robotics domain knowledge (topics, QoS, Nav2 action clients, lifecycle services). FastAPI endpoints interact with the bridge via high-level method calls and Pydantic data schemas.
+- **Map storage:** simulation navigation and the API container share the `src/panther-autonomy-pkg/maps/` directory, mounted as `/maps` in both containers. The navigation stack starts in localization mode (`SLAM=False`) using `map_server` + AMCL and loads `/maps/map.yaml` before missions run. Set `SLAM=True` to use SLAM mapping instead.
+- **Map upload:** `POST /map/upload` writes a validated YAML/image pair to the shared `/maps` directory and activates it through Nav2 `map_server/load_map`. Uploads are rejected during active missions, so the map cannot change under a running route.
 
 ## 3. Bridge → API contract
 
@@ -28,7 +30,8 @@ For a detailed specification of FastAPI endpoints, Pydantic data models, and the
 
 ## 4. Missions and external scripts
 
-- A mission is uploaded via HTTP as a YAML file (`/mission/upload`), parsed and validated against Pydantic models in the bridge.
+- A mission is uploaded via HTTP as a YAML file (`/mission/upload`), parsed and validated against Pydantic models in the bridge. Mission upload requires the Nav2 localization `map_server` to be available.
+- Mission start requires an active localization (`map_server` + AMCL) or SLAM lifecycle, in addition to the Nav2 action server and E-stop checks.
 - Mission sequencing (drive → wait → next waypoint) is handled by the **bridge** via Nav2 `NavigateToPose` actions, with runtime status tracked via `/mission/status`.
 - **Waypoint Measurement Scripts:** Every waypoint in a `MissionDefinition` can optionally specify a measurement script (`measurement_script`) with an `id`, `name`, and arbitrary `parameters` (as a key-value mapping).
 - Handshake Protocol at Waypoints:
