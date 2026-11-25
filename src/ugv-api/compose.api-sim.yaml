@@ -13,8 +13,10 @@ services:
     env_file: ../panther-autonomy-pkg/.env
     environment:
       - ROBOT_NAMESPACE=panther
+      - MAP_DIR=/maps
     # Code mounted for live editing during development (no image rebuild needed).
     volumes:
       - ./bridge:/app/bridge
       - ./api:/app/api
+      - ../panther-autonomy-pkg/maps:/maps
     restart: unless-stopped
