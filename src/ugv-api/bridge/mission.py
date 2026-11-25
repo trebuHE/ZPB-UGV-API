@@ -315,6 +315,15 @@ class MissionManager:
     return log_info("Mission cancelled and Nav2 goal cancellation requested.", logger=logger)
 
   @property
+  def is_active(self) -> bool:
+    with self._mission_lock:
+      return self._status.state in (
+        MissionState.RUNNING,
+        MissionState.WAITING_AT_WAYPOINT,
+        MissionState.PAUSED,
+      )
+
+  @property
   def is_mission_loaded(self) -> bool:
     with self._mission_lock:
       return self._loaded_mission_definition is not None
