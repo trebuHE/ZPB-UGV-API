@@ -28,15 +28,26 @@ class HardwareManager:
     self._srv_nav_active = self._node.create_client(
       Trigger, f"{self._ns}/lifecycle_manager_navigation/is_active"
     )
+    self._srv_localization_active = self._node.create_client(
+      Trigger, f"{self._ns}/lifecycle_manager_localization/is_active"
+    )
     self._srv_slam_active = self._node.create_client(
       Trigger, f"{self._ns}/lifecycle_manager_slam/is_active"
     )
 
-  def _call_trigger(self, client: rclpy.client.Client, timeout_sec: float = 2.0) -> CommandResult:
+  def _call_trigger(
+    self,
+    client: rclpy.client.Client,
+    timeout_sec: float = 2.0,
+    log_unavailable: bool = True,
+  ) -> CommandResult:
     """Helper function that fires ROS 2 service trigger and waits for response with a timeout."""
     logger = self._node.get_logger()
     if not client.wait_for_service(timeout_sec=timeout_sec):
-      return log_error(f"Service {client.srv_name} unavailable", logger=logger)
+      message = f"Service {client.srv_name} unavailable"
+      if log_unavailable:
+        return log_error(message, logger=logger)
+      return CommandResult(success=False, message=message)
 
     event = threading.Event()
     future: Future = client.call_async(Trigger.Request())
@@ -60,5 +71,16 @@ class HardwareManager:
   def is_navigation_active(self, timeout_sec: float = 2.0) -> CommandResult:
     return self._call_trigger(self._srv_nav_active, timeout_sec)
 
-  def is_slam_active(self, timeout_sec: float = 2.0) -> CommandResult:
-    return self._call_trigger(self._srv_slam_active, timeout_sec)
+  def is_localization_active(
+    self,
+    timeout_sec: float = 2.0,
+    log_unavailable: bool = True,
+  ) -> CommandResult:
+    return self._call_trigger(self._srv_localization_active, timeout_sec, log_unavailable)
+
+  def is_slam_active(
+    self,
+    timeout_sec: float = 2.0,
+    log_unavailable: bool = True,
+  ) -> CommandResult:
+    return self._call_trigger(self._srv_slam_active, timeout_sec, log_unavailable)

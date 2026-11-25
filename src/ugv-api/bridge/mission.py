@@ -209,9 +209,16 @@ class MissionManager:
       if not nav_status.success:
         return log_warn(f"Cannot start mission! Navigation lifecycle inactive: {nav_status.message}.", logger=logger)
 
-      slam_status = self._hardware.is_slam_active()
-      if not slam_status.success:
-        return log_warn(f"Cannot start mission! SLAM lifecycle inactive: {slam_status.message}.", logger=logger)
+      localization_status = self._hardware.is_localization_active(log_unavailable=False)
+      if not localization_status.success:
+        slam_status = self._hardware.is_slam_active(log_unavailable=False)
+        if not slam_status.success:
+          return log_warn(
+            "Cannot start mission! Neither localization nor SLAM lifecycle is active."
+            f" Localization: {localization_status.message}."
+            f" SLAM: {slam_status.message}.",
+            logger=logger,
+          )
 
       if not self._navigation.wait_for_server(timeout_sec=2.0):
         return log_warn("Cannot start mission! Nav2 action server navigate_to_pose unavailable.", logger=logger)
